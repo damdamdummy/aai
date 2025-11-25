@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Heart, Loader2, Sparkles } from 'lucide-react';
+import { Send, Heart, Loader2, Sparkles, Cloud } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -384,7 +384,11 @@ export default function AdamChatbot() {
                                 <p className="text-sm retro-text opacity-90">~ Always here for you, Yang ~</p>
                             </div>
                         </div>
-                        <Cloud className="w-8 h-8 text-white opacity-80 fill-current animate-pulse" />
+                        <div className="flex gap-1">
+                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse" />
+                            <Heart className="w-3 h-3 text-pink-400 fill-current animate-pulse delay-75" />
+                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse delay-150" />
+                        </div>
                     </div>
                 </div>
             </div>
