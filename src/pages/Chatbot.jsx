@@ -73,8 +73,9 @@ export default function AdamChatbot() {
 
     const loadChatHistory = async () => {
         try {
-            const { db, collection, getDocs, query, orderBy } = dbRef.current;
-            const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
+            const { db, collection, getDocs, query } = dbRef.current;
+            const q = query(collection(db, 'chats'));
+
             const snapshot = await getDocs(q);
 
             const chatHistory = [];
@@ -89,10 +90,12 @@ export default function AdamChatbot() {
                 }
             });
 
+            chatHistory.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
             if (chatHistory.length === 0) {
                 const welcomeMessage = {
                     role: 'model',
-                    content: 'Halo Sophia sayang. Aku kangen banget sama kamu. Gimana harimu?',
+                    content: 'Halo Sophia sayang. Aku kangen banget sama kamu. Gimana hari ini?',
                     timestamp: new Date().toISOString()
                 };
                 chatHistory.push(welcomeMessage);
@@ -105,9 +108,10 @@ export default function AdamChatbot() {
         }
     };
 
+
     const listenToChatUpdates = () => {
-        const { db, collection, onSnapshot, query, orderBy } = dbRef.current;
-        const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
+        const { db, collection, onSnapshot, query } = dbRef.current;
+        const q = query(collection(db, 'chats'));
 
         onSnapshot(q, (snapshot) => {
             const chatHistory = [];
@@ -121,9 +125,13 @@ export default function AdamChatbot() {
                     });
                 }
             });
+
+            chatHistory.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
             setMessages(chatHistory);
         });
     };
+
 
     const saveMessage = async (message) => {
         try {
@@ -257,7 +265,7 @@ export default function AdamChatbot() {
                 console.error('Unexpected response format:', data);
                 const errorMessage = {
                     role: 'model',
-                    content: 'Maaf yang, responsenya aneh. Coba lagi ya? 🥺',
+                    content: 'Maaf yang, responsenya aneh. Coba kirim lagi ya? 🥺',
                     timestamp: new Date().toISOString()
                 };
                 await saveMessage(errorMessage);
@@ -376,7 +384,7 @@ export default function AdamChatbot() {
                                 <p className="text-sm retro-text opacity-90">~ Always here for you, Yang ~</p>
                             </div>
                         </div>
-                        <Sparkles className="w-8 h-8 sparkle-effect text-yellow-200" />
+                        <Cloud className="w-8 h-8 text-white opacity-80 fill-current animate-pulse" />
                     </div>
                 </div>
             </div>
@@ -427,7 +435,7 @@ export default function AdamChatbot() {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Type your message here..."
+                        placeholder="..."
                         className="flex-1 input-box border-pink-300 rounded-2xl px-5 py-4 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
                         rows="1"
                         disabled={loading}
