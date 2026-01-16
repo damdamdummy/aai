@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Heart, Loader2, Sparkles, Cloud } from 'lucide-react';
+import { Send, Heart, Loader2, Sparkles, Lock, Key } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -17,6 +17,10 @@ export default function AdamChatbot() {
     const [systemPrompt, setSystemPrompt] = useState('');
     const [apiKey, setApiKey] = useState('');
     const [initializing, setInitializing] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [checkingPassword, setCheckingPassword] = useState(false);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
 
@@ -41,15 +45,47 @@ export default function AdamChatbot() {
             const db = getFirestore(app);
             dbRef.current = { db, collection, getDocs, addDoc, query, orderBy, doc, getDoc, onSnapshot };
 
-            await loadConfig();
-            await loadChatHistory();
-            listenToChatUpdates();
-
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
-            alert('Failed to initialize. Please check Firebase configuration.');
+            alert('Failed to initialize. Check Firebase config.');
             setInitializing(false);
+        }
+    };
+
+    const checkPassword = async () => {
+        if (!passwordInput.trim()) {
+            setPasswordError('Please enter password');
+            return;
+        }
+
+        setCheckingPassword(true);
+        setPasswordError('');
+
+        try {
+            const { db, doc, getDoc } = dbRef.current;
+            const configDoc = await getDoc(doc(db, 'config', 'chatbot'));
+
+            if (configDoc.exists()) {
+                const data = configDoc.data();
+                const storedPassword = data.accessPassword || '';
+
+                if (passwordInput === storedPassword) {
+                    setIsAuthenticated(true);
+                    await loadConfig();
+                    await loadChatHistory();
+                    listenToChatUpdates();
+                } else {
+                    setPasswordError('Wrong password! Try again </3');
+                }
+            } else {
+                setPasswordError('Conf not found');
+            }
+        } catch (error) {
+            console.error('Password check error:', error);
+            setPasswordError('Error checking password');
+        } finally {
+            setCheckingPassword(false);
         }
     };
 
@@ -108,7 +144,6 @@ export default function AdamChatbot() {
         }
     };
 
-
     const listenToChatUpdates = () => {
         const { db, collection, onSnapshot, query } = dbRef.current;
         const q = query(collection(db, 'chats'));
@@ -131,7 +166,6 @@ export default function AdamChatbot() {
             setMessages(chatHistory);
         });
     };
-
 
     const saveMessage = async (message) => {
         try {
@@ -200,11 +234,6 @@ export default function AdamChatbot() {
                 }
             };
 
-            console.log('Sending to Gemini API...');
-            console.log('System prompt length:', systemPrompt.length);
-            console.log('System prompt preview:', systemPrompt.substring(0, 100) + '...');
-            console.log('Total contents items:', contents.length);
-
             const modelNames = [
                 'gemini-2.5-flash',
                 'gemini-2.5-pro',
@@ -249,8 +278,6 @@ export default function AdamChatbot() {
                 throw lastError || new Error('All models failed');
             }
 
-            console.log('Gemini response:', data);
-
             if (data.candidates && data.candidates[0]?.content?.parts) {
                 const assistantMessage = {
                     role: 'model',
@@ -291,6 +318,13 @@ export default function AdamChatbot() {
         }
     };
 
+    const handlePasswordKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            checkPassword();
+        }
+    };
+
     if (initializing) {
         return (
             <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
@@ -300,6 +334,109 @@ export default function AdamChatbot() {
                         <Sparkles className="w-6 h-6 text-purple-400 absolute top-0 right-12 animate-pulse" />
                     </div>
                     <p className="text-gray-700 font-mono text-lg">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+                    
+                    .retro-title {
+                        font-family: 'Press Start 2P', cursive;
+                        text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+                    }
+                    
+                    .retro-text {
+                        font-family: 'VT323', monospace;
+                        font-size: 1.2rem;
+                    }
+                    
+                    .pixel-heart {
+                        filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+                        animation: heartbeat 1.5s ease-in-out infinite;
+                    }
+                    
+                    @keyframes heartbeat {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.1); }
+                    }
+                    
+                    .input-box {
+                        font-family: 'VT323', monospace;
+                        font-size: 1.2rem;
+                        border: 3px solid;
+                        box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+                    }
+                    
+                    .login-button {
+                        box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+                        transition: all 0.1s;
+                    }
+                    
+                    .login-button:active:not(:disabled) {
+                        box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+                        transform: translate(2px, 2px);
+                    }
+                `}</style>
+
+                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border-4 border-pink-300">
+                    <div className="text-center mb-8">
+                        <div className="flex justify-center mb-4">
+                            <Lock className="w-16 h-16 text-pink-500 pixel-heart" />
+                        </div>
+                        <h1 className="text-2xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
+                        <p className="retro-text text-gray-600">Passwordnya apa, sayang?</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <div className="relative">
+                                <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-400 w-5 h-5" />
+                                <input
+                                    type="password"
+                                    value={passwordInput}
+                                    onChange={(e) => {
+                                        setPasswordInput(e.target.value);
+                                        setPasswordError('');
+                                    }}
+                                    onKeyPress={handlePasswordKeyPress}
+                                    placeholder="Password"
+                                    className="input-box w-full border-pink-300 rounded-2xl pl-12 pr-5 py-4 focus:outline-none focus:border-pink-500 bg-pink-50"
+                                    disabled={checkingPassword}
+                                />
+                            </div>
+                            {passwordError && (
+                                <p className="retro-text text-red-500 text-sm mt-2 ml-2">{passwordError}</p>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={checkPassword}
+                            disabled={checkingPassword || !passwordInput.trim()}
+                            className="login-button w-full bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                        >
+                            {checkingPassword ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span className="retro-text">Checking...</span>
+                                </div>
+                            ) : (
+                                <span className="retro-text">Enter</span>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <div className="flex justify-center gap-1">
+                            <Heart className="w-4 h-4 text-pink-400 fill-current animate-pulse" />
+                            <Heart className="w-3 h-3 text-pink-500 fill-current animate-pulse delay-75" />
+                            <Heart className="w-4 h-4 text-pink-400 fill-current animate-pulse delay-150" />
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -373,7 +510,6 @@ export default function AdamChatbot() {
                 }
             `}</style>
 
-            {/* Header */}
             <div className="bg-gradient-to-r from-pink-400 via-purple-400 to-pink-500 text-white p-6 shadow-xl border-b-4 border-pink-600">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center justify-between">
@@ -393,7 +529,6 @@ export default function AdamChatbot() {
                 </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
                 {messages.map((msg, idx) => (
                     <div
@@ -432,7 +567,6 @@ export default function AdamChatbot() {
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="border-t-4 border-pink-200 bg-white p-6 shadow-2xl">
                 <div className="max-w-4xl mx-auto flex gap-3">
                     <textarea
