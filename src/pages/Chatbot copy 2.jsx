@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Heart, Loader2, Sparkles } from 'lucide-react';
+import { Send, Heart, Loader2, Sparkles, Lock, Key } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -10,6 +10,9 @@ const firebaseConfig = {
     appId: "1:44413551728:web:4ce7110d225dea46a3e0b5"
 };
 
+// Export the config for use in Admin page
+export { firebaseConfig };
+
 export default function AdamChatbot() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -17,6 +20,11 @@ export default function AdamChatbot() {
     const [systemPrompt, setSystemPrompt] = useState('');
     const [apiKey, setApiKey] = useState('');
     const [initializing, setInitializing] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [checkingPassword, setCheckingPassword] = useState(false);
+    const [botEnabled, setBotEnabled] = useState(true);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
 
@@ -41,15 +49,48 @@ export default function AdamChatbot() {
             const db = getFirestore(app);
             dbRef.current = { db, collection, getDocs, addDoc, query, orderBy, doc, getDoc, onSnapshot };
 
-            await loadConfig();
-            await loadChatHistory();
-            listenToChatUpdates();
-
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
             alert('Failed to initialize. Please check Firebase configuration.');
             setInitializing(false);
+        }
+    };
+
+    const checkPassword = async () => {
+        if (!passwordInput.trim()) {
+            setPasswordError('Please enter password');
+            return;
+        }
+
+        setCheckingPassword(true);
+        setPasswordError('');
+
+        try {
+            const { db, doc, getDoc } = dbRef.current;
+            const configDoc = await getDoc(doc(db, 'config', 'chatbot'));
+
+            if (configDoc.exists()) {
+                const data = configDoc.data();
+                const storedPassword = data.accessPassword || '';
+
+                if (passwordInput === storedPassword) {
+                    setIsAuthenticated(true);
+                    await loadConfig();
+                    await loadChatHistory();
+                    listenToChatUpdates();
+                    listenToConfigUpdates();
+                } else {
+                    setPasswordError('Wrong password! Try again 💔');
+                }
+            } else {
+                setPasswordError('Configuration not found');
+            }
+        } catch (error) {
+            console.error('Password check error:', error);
+            setPasswordError('Error checking password');
+        } finally {
+            setCheckingPassword(false);
         }
     };
 
@@ -62,7 +103,8 @@ export default function AdamChatbot() {
                 const data = configDoc.data();
                 setSystemPrompt(data.systemPrompt || '');
                 setApiKey(data.anthropicApiKey || '');
-                console.log('Config loaded, API key exists:', !!data.anthropicApiKey);
+                setBotEnabled(data.botEnabled !== false); // Default true
+                console.log('Config loaded, botEnabled:', data.botEnabled !== false);
             } else {
                 console.error('Config document not found!');
             }
@@ -71,10 +113,25 @@ export default function AdamChatbot() {
         }
     };
 
+    // Listen to config changes in realtime (so bot on/off reflects immediately)
+    const listenToConfigUpdates = () => {
+        const { db, doc, onSnapshot } = dbRef.current;
+        onSnapshot(doc(db, 'config', 'chatbot'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                setSystemPrompt(data.systemPrompt || '');
+                setApiKey(data.anthropicApiKey || '');
+                setBotEnabled(data.botEnabled !== false);
+                console.log('Config updated realtime, botEnabled:', data.botEnabled !== false);
+            }
+        });
+    };
+
     const loadChatHistory = async () => {
         try {
-            const { db, collection, getDocs, query, orderBy } = dbRef.current;
-            const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
+            const { db, collection, getDocs, query } = dbRef.current;
+            const q = query(collection(db, 'chats'));
+
             const snapshot = await getDocs(q);
 
             const chatHistory = [];
@@ -89,10 +146,12 @@ export default function AdamChatbot() {
                 }
             });
 
+            chatHistory.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
             if (chatHistory.length === 0) {
                 const welcomeMessage = {
                     role: 'model',
-                    content: 'Hai yang! Aku kangen banget sama kamu. Gimana harimu? 🥰',
+                    content: 'Halo Sophia sayang. Aku kangen banget sama kamu. Gimana hari ini?',
                     timestamp: new Date().toISOString()
                 };
                 chatHistory.push(welcomeMessage);
@@ -106,8 +165,8 @@ export default function AdamChatbot() {
     };
 
     const listenToChatUpdates = () => {
-        const { db, collection, onSnapshot, query, orderBy } = dbRef.current;
-        const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
+        const { db, collection, onSnapshot, query } = dbRef.current;
+        const q = query(collection(db, 'chats'));
 
         onSnapshot(q, (snapshot) => {
             const chatHistory = [];
@@ -121,6 +180,9 @@ export default function AdamChatbot() {
                     });
                 }
             });
+
+            chatHistory.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+
             setMessages(chatHistory);
         });
     };
@@ -152,9 +214,16 @@ export default function AdamChatbot() {
 
         const currentInput = input;
         setInput('');
-        setLoading(true);
 
         await saveMessage(userMessage);
+
+        // Jika bot dimatikan admin, hanya simpan pesan user — tidak panggil AI
+        if (!botEnabled) {
+            console.log('Bot is disabled by admin, skipping AI response.');
+            return;
+        }
+
+        setLoading(true);
 
         try {
             const geminiHistory = messages
@@ -191,11 +260,6 @@ export default function AdamChatbot() {
                     maxOutputTokens: 1000,
                 }
             };
-
-            console.log('Sending to Gemini API...');
-            console.log('System prompt length:', systemPrompt.length);
-            console.log('System prompt preview:', systemPrompt.substring(0, 100) + '...');
-            console.log('Total contents items:', contents.length);
 
             const modelNames = [
                 'gemini-2.5-flash',
@@ -241,8 +305,6 @@ export default function AdamChatbot() {
                 throw lastError || new Error('All models failed');
             }
 
-            console.log('Gemini response:', data);
-
             if (data.candidates && data.candidates[0]?.content?.parts) {
                 const assistantMessage = {
                     role: 'model',
@@ -257,7 +319,7 @@ export default function AdamChatbot() {
                 console.error('Unexpected response format:', data);
                 const errorMessage = {
                     role: 'model',
-                    content: 'Maaf yang, responsenya aneh. Coba lagi ya? 🥺',
+                    content: 'Maaf yang, responsenya aneh. Coba kirim lagi ya? 🥺',
                     timestamp: new Date().toISOString()
                 };
                 await saveMessage(errorMessage);
@@ -283,6 +345,13 @@ export default function AdamChatbot() {
         }
     };
 
+    const handlePasswordKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            checkPassword();
+        }
+    };
+
     if (initializing) {
         return (
             <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
@@ -292,6 +361,109 @@ export default function AdamChatbot() {
                         <Sparkles className="w-6 h-6 text-purple-400 absolute top-0 right-12 animate-pulse" />
                     </div>
                     <p className="text-gray-700 font-mono text-lg">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+                <style>{`
+                    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+                    
+                    .retro-title {
+                        font-family: 'Press Start 2P', cursive;
+                        text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
+                    }
+                    
+                    .retro-text {
+                        font-family: 'VT323', monospace;
+                        font-size: 1.2rem;
+                    }
+                    
+                    .pixel-heart {
+                        filter: drop-shadow(0 0 8px rgba(236, 72, 153, 0.6));
+                        animation: heartbeat 1.5s ease-in-out infinite;
+                    }
+                    
+                    @keyframes heartbeat {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.1); }
+                    }
+                    
+                    .input-box {
+                        font-family: 'VT323', monospace;
+                        font-size: 1.2rem;
+                        border: 3px solid;
+                        box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+                    }
+                    
+                    .login-button {
+                        box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+                        transition: all 0.1s;
+                    }
+                    
+                    .login-button:active:not(:disabled) {
+                        box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+                        transform: translate(2px, 2px);
+                    }
+                `}</style>
+
+                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border-4 border-pink-300">
+                    <div className="text-center mb-8">
+                        <div className="flex justify-center mb-4">
+                            <Lock className="w-16 h-16 text-pink-500 pixel-heart" />
+                        </div>
+                        <h1 className="text-2xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
+                        <p className="retro-text text-gray-600">Passwordnya apa, sayang?</p>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div>
+                            <div className="relative">
+                                <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 text-pink-400 w-5 h-5" />
+                                <input
+                                    type="password"
+                                    value={passwordInput}
+                                    onChange={(e) => {
+                                        setPasswordInput(e.target.value);
+                                        setPasswordError('');
+                                    }}
+                                    onKeyPress={handlePasswordKeyPress}
+                                    placeholder="Password"
+                                    className="input-box w-full border-pink-300 rounded-2xl pl-12 pr-5 py-4 focus:outline-none focus:border-pink-500 bg-pink-50"
+                                    disabled={checkingPassword}
+                                />
+                            </div>
+                            {passwordError && (
+                                <p className="retro-text text-red-500 text-sm mt-2 ml-2">{passwordError}</p>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={checkPassword}
+                            disabled={checkingPassword || !passwordInput.trim()}
+                            className="login-button w-full bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                        >
+                            {checkingPassword ? (
+                                <div className="flex items-center justify-center gap-2">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <span className="retro-text">Checking...</span>
+                                </div>
+                            ) : (
+                                <span className="retro-text">Enter</span>
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="mt-6 text-center">
+                        <div className="flex justify-center gap-1">
+                            <Heart className="w-4 h-4 text-pink-400 fill-current animate-pulse" />
+                            <Heart className="w-3 h-3 text-pink-500 fill-current animate-pulse delay-75" />
+                            <Heart className="w-4 h-4 text-pink-400 fill-current animate-pulse delay-150" />
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -373,10 +545,21 @@ export default function AdamChatbot() {
                             <Heart className="w-10 h-10 fill-current pixel-heart" />
                             <div>
                                 <h1 className="text-2xl retro-title mb-2">Adam ♥</h1>
-                                <p className="text-sm retro-text opacity-90">~ Always here for you, Yang ~</p>
+                                {botEnabled ? (
+                                    <p className="text-sm retro-text opacity-90">~ Still here for you ~</p>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
+                                        <p className="text-sm retro-text text-green-200">~ Bukan AI ~</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                        <Sparkles className="w-8 h-8 sparkle-effect text-yellow-200" />
+                        <div className="flex gap-1">
+                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse" />
+                            <Heart className="w-3 h-3 text-pink-400 fill-current animate-pulse delay-75" />
+                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse delay-150" />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -421,13 +604,21 @@ export default function AdamChatbot() {
             </div>
 
             {/* Input */}
-            <div className="border-t-4 border-pink-200 bg-white p-6 shadow-2xl">
-                <div className="max-w-4xl mx-auto flex gap-3">
+            <div className="border-t-4 border-pink-200 bg-white shadow-2xl">
+                {/* {!botEnabled && (
+                    <div className="max-w-4xl mx-auto px-6 pt-3">
+                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-4 py-2">
+                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+                            <p className="retro-text text-green-700 text-sm">Slow response 💬</p>
+                        </div>
+                    </div>
+                )} */}
+                <div className="max-w-4xl mx-auto flex gap-3 p-6">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Type your message here..."
+                        placeholder={botEnabled ? "..." : "..."}
                         className="flex-1 input-box border-pink-300 rounded-2xl px-5 py-4 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
                         rows="1"
                         disabled={loading}

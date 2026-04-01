@@ -10,7 +10,6 @@ const firebaseConfig = {
     appId: "1:44413551728:web:4ce7110d225dea46a3e0b5"
 };
 
-// Export the config for use in Admin page
 export { firebaseConfig };
 
 export default function AdamChatbot() {
@@ -113,7 +112,6 @@ export default function AdamChatbot() {
         }
     };
 
-    // Listen to config changes in realtime (so bot on/off reflects immediately)
     const listenToConfigUpdates = () => {
         const { db, doc, onSnapshot } = dbRef.current;
         onSnapshot(doc(db, 'config', 'chatbot'), (snapshot) => {
@@ -354,11 +352,11 @@ export default function AdamChatbot() {
 
     if (initializing) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
                 <div className="text-center">
                     <div className="relative">
                         <Loader2 className="w-16 h-16 animate-spin text-pink-500 mx-auto mb-4" />
-                        <Sparkles className="w-6 h-6 text-purple-400 absolute top-0 right-12 animate-pulse" />
+                        <Sparkles className="w-6 h-6 text-pink-300 absolute top-0 right-12 animate-pulse" />
                     </div>
                     <p className="text-gray-700 font-mono text-lg">Loading...</p>
                 </div>
@@ -368,7 +366,7 @@ export default function AdamChatbot() {
 
     if (!isAuthenticated) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
                     
@@ -444,7 +442,7 @@ export default function AdamChatbot() {
                         <button
                             onClick={checkPassword}
                             disabled={checkingPassword || !passwordInput.trim()}
-                            className="login-button w-full bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                            className="login-button w-full bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
                         >
                             {checkingPassword ? (
                                 <div className="flex items-center justify-center gap-2">
@@ -470,7 +468,7 @@ export default function AdamChatbot() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-white">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
                 
@@ -538,19 +536,19 @@ export default function AdamChatbot() {
             `}</style>
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-400 via-purple-400 to-pink-500 text-white p-6 shadow-xl border-b-4 border-pink-600">
+            <div className="bg-gradient-to-r from-pink-300 via-pink-400 to-rose-300 text-white p-4 shadow-xl border-b-4 border-pink-300">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Heart className="w-10 h-10 fill-current pixel-heart" />
+                        <div className="flex items-center gap-3">
+                            <Heart className="w-7 h-7 fill-current pixel-heart" />
                             <div>
-                                <h1 className="text-2xl retro-title mb-2">Adam ♥</h1>
+                                <h1 className="text-lg retro-title mb-1">Adam ♥</h1>
                                 {botEnabled ? (
                                     <p className="text-sm retro-text opacity-90">~ Still here for you ~</p>
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
-                                        <p className="text-sm retro-text text-green-200">~ Bukan AI ~</p>
+                                        <p className="text-sm retro-text text-green-200">~ 224 ~</p>
                                     </div>
                                 )}
                             </div>
@@ -573,16 +571,30 @@ export default function AdamChatbot() {
                     >
                         <div className="flex flex-col max-w-[80%]">
                             {msg.role === 'user' ? (
-                                <div className="bg-gradient-to-br from-purple-400 to-pink-400 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-purple-500">
-                                    <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
-                                </div>
-                            ) : (
-                                <div className="flex items-start gap-3">
-                                    <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
-                                    <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
-                                        <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                <>
+                                    <div className="bg-gradient-to-br from-pink-300 to-rose-300 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-300">
+                                        <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
                                     </div>
-                                </div>
+                                    {msg.timestamp && (
+                                        <p className="text-xs text-gray-400 mt-1 text-right px-2">
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-start gap-3">
+                                        <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
+                                        <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
+                                            <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                        </div>
+                                    </div>
+                                    {msg.timestamp && (
+                                        <p className="text-xs text-gray-400 mt-1 text-left px-11">
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -626,7 +638,7 @@ export default function AdamChatbot() {
                     <button
                         onClick={sendMessage}
                         disabled={loading || !input.trim()}
-                        className="send-button bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-8 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                        className="send-button bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-2xl px-8 py-4 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
                     >
                         <Send className="w-6 h-6" />
                     </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2, Key, Send, Bot, User } from 'lucide-react';
+import { Eye, Download, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2, Key, Send, Bot, User, ChevronDown, ChevronUp, BarChart2, X } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -25,24 +25,17 @@ export default function Admin() {
     const [initializing, setInitializing] = useState(true);
     const [manualMessage, setManualMessage] = useState('');
     const [sendingMessage, setSendingMessage] = useState(false);
+    const [statsOpen, setStatsOpen] = useState(false);
+    const [configOpen, setConfigOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
     const authRef = useRef(null);
 
+    useEffect(() => { initFirebase(); }, []);
     useEffect(() => {
-        initFirebase();
-    }, []);
-
-    useEffect(() => {
-        if (isAuthenticated) {
-            loadConfig();
-            listenToChats();
-        }
+        if (isAuthenticated) { loadConfig(); listenToChats(); }
     }, [isAuthenticated]);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    useEffect(() => { scrollToBottom(); }, [messages]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,18 +46,15 @@ export default function Admin() {
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
             const { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
             const { getAuth, signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             const auth = getAuth(app);
-
             dbRef.current = { db, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc };
             authRef.current = { auth, signInWithEmailAndPassword, signOut };
-
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
-            alert('Failed to initialize Firebase. Check your config.');
+            alert('Failed to initialize Firebase.');
             setInitializing(false);
         }
     };
@@ -74,11 +64,9 @@ export default function Admin() {
             const { auth, signInWithEmailAndPassword } = authRef.current;
             await signInWithEmailAndPassword(auth, email, password);
             setIsAuthenticated(true);
-            setEmail('');
-            setPassword('');
+            setEmail(''); setPassword('');
         } catch (error) {
             alert('Login failed! Check your email and password.');
-            console.error(error);
         }
     };
 
@@ -87,32 +75,23 @@ export default function Admin() {
             const { auth, signOut } = authRef.current;
             await signOut(auth);
             setIsAuthenticated(false);
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
+        } catch (error) { console.error('Logout error:', error); }
     };
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            handleLogin();
-        }
-    };
+    const handleKeyPress = (e) => { if (e.key === 'Enter') handleLogin(); };
 
     const loadConfig = async () => {
         try {
             const { db, doc, getDoc } = dbRef.current;
             const configDoc = await getDoc(doc(db, 'config', 'chatbot'));
-
             if (configDoc.exists()) {
                 const data = configDoc.data();
                 setSystemPrompt(data.systemPrompt || '');
                 setAnthropicApiKey(data.anthropicApiKey || '');
                 setChatbotPassword(data.accessPassword || '');
-                setBotEnabled(data.botEnabled !== false); // Default true
+                setBotEnabled(data.botEnabled !== false);
             }
-        } catch (error) {
-            console.error('Failed to load config:', error);
-        }
+        } catch (error) { console.error('Failed to load config:', error); }
     };
 
     const saveConfig = async () => {
@@ -120,111 +99,77 @@ export default function Admin() {
         try {
             const { db, doc, updateDoc } = dbRef.current;
             await updateDoc(doc(db, 'config', 'chatbot'), {
-                systemPrompt,
-                anthropicApiKey,
-                accessPassword: chatbotPassword,
-                botEnabled
+                systemPrompt, anthropicApiKey, accessPassword: chatbotPassword, botEnabled
             });
-            alert('Configuration saved successfully!');
+            alert('Configuration saved!');
             setEditMode(false);
         } catch (error) {
             alert('Failed to save configuration');
-            console.error(error);
-        } finally {
-            setSaving(false);
-        }
+        } finally { setSaving(false); }
     };
 
     const toggleBot = async () => {
         const newBotEnabled = !botEnabled;
         setBotEnabled(newBotEnabled);
-
         try {
             const { db, doc, updateDoc } = dbRef.current;
-            await updateDoc(doc(db, 'config', 'chatbot'), {
-                botEnabled: newBotEnabled
-            });
-
-            const statusMessage = newBotEnabled
-                ? '🤖 Bot AI telah diaktifkan kembali'
-                : '👤 Bot AI dinonaktifkan - Admin mode aktif';
-            alert(statusMessage);
+            await updateDoc(doc(db, 'config', 'chatbot'), { botEnabled: newBotEnabled });
+            alert(newBotEnabled ? 'Bot AI diaktifkan' : 'Manual mode aktif');
         } catch (error) {
-            console.error('Failed to toggle bot:', error);
-            setBotEnabled(!newBotEnabled); // Revert on error
+            setBotEnabled(!newBotEnabled);
             alert('Failed to toggle bot status');
         }
     };
 
     const sendManualMessage = async () => {
         if (!manualMessage.trim() || sendingMessage) return;
-
         setSendingMessage(true);
         try {
             const { db, collection, addDoc } = dbRef.current;
-
-            const message = {
+            await addDoc(collection(db, 'chats'), {
                 role: 'model',
                 content: manualMessage,
                 timestamp: new Date().toISOString(),
-                manual: true // Mark as manually sent
-            };
-
-            await addDoc(collection(db, 'chats'), message);
+                manual: true
+            });
             setManualMessage('');
         } catch (error) {
-            console.error('Failed to send message:', error);
             alert('Failed to send message');
-        } finally {
-            setSendingMessage(false);
-        }
+        } finally { setSendingMessage(false); }
     };
 
     const handleManualMessageKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendManualMessage();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendManualMessage(); }
     };
 
     const listenToChats = () => {
         try {
             const { db, collection, onSnapshot, query, orderBy } = dbRef.current;
             const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
-
             onSnapshot(q, (snapshot) => {
                 const chatHistory = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     if (data.role && data.content) {
-                        chatHistory.push({
-                            id: doc.id,
-                            role: data.role,
-                            content: data.content,
-                            timestamp: data.timestamp,
-                            manual: data.manual || false
-                        });
+                        chatHistory.push({ id: doc.id, role: data.role, content: data.content, timestamp: data.timestamp, manual: data.manual || false });
                     }
                 });
                 setMessages(chatHistory);
             });
-        } catch (error) {
-            console.error('Failed to listen to chats:', error);
-        }
+        } catch (error) { console.error('Failed to listen to chats:', error); }
     };
 
     const downloadChat = () => {
         const chatText = messages.map(m => {
             const time = new Date(m.timestamp).toLocaleString('id-ID');
-            const sender = m.role === 'user' ? 'Sophia' : `Adam${m.manual ? ' (Manual)' : ' (AI)'}`;
-            return `[${time}] ${sender}: ${m.content}`;
+            const sender = m.role === 'user' ? 'Sophia' : 'Adam' + (m.manual ? ' (Manual)' : ' (AI)');
+            return '[' + time + '] ' + sender + ': ' + m.content;
         }).join('\n\n');
-
         const blob = new Blob([chatText], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `chat-history-${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = 'chat-history-' + new Date().toISOString().split('T')[0] + '.txt';
         a.click();
     };
 
@@ -233,17 +178,14 @@ export default function Admin() {
             try {
                 const { db, collection, getDocs, deleteDoc, doc } = dbRef.current;
                 const snapshot = await getDocs(collection(db, 'chats'));
-
                 const deletePromises = [];
                 snapshot.forEach((document) => {
                     deletePromises.push(deleteDoc(doc(db, 'chats', document.id)));
                 });
-
                 await Promise.all(deletePromises);
-                alert('Chat history berhasil dihapus!');
+                alert('Chat history dihapus!');
             } catch (error) {
                 alert('Gagal hapus chat history');
-                console.error(error);
             }
         }
     };
@@ -264,10 +206,10 @@ export default function Admin() {
 
     if (initializing) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
+            <div className="flex items-center justify-center h-screen bg-zinc-950">
                 <div className="text-center text-white">
-                    <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p>Loading...</p>
+                    <div className="w-10 h-10 border-2 border-zinc-700 border-t-zinc-300 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-zinc-500 text-xs tracking-widest uppercase">Loading</p>
                 </div>
             </div>
         );
@@ -275,38 +217,34 @@ export default function Admin() {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
-                    <div className="flex items-center justify-center mb-6">
-                        <Lock className="w-12 h-12 text-purple-600" />
+            <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+                <div className="w-full max-w-sm">
+                    <div className="text-center mb-8">
+                        <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
+                            <Lock className="w-6 h-6 text-zinc-300" />
+                        </div>
+                        <h1 className="text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
                     </div>
-                    <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">Admin Dashboard</h1>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
-                                placeholder="admin@example.com"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                onKeyPress={handleKeyPress}
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500"
-                                placeholder="Enter password"
-                            />
-                        </div>
+                    <div className="space-y-3">
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            placeholder="Email"
+                        />
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            placeholder="Password"
+                        />
                         <button
                             onClick={handleLogin}
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium"
+                            className="w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all"
                         >
                             Login
                         </button>
@@ -317,145 +255,138 @@ export default function Admin() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
-            {/* Header */}
-            <div className="bg-gray-800 border-b border-gray-700 p-6 sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <Eye className="w-8 h-8 text-purple-400" />
-                            <div>
-                                <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-                                <p className="text-sm text-gray-400">Monitoring: Adam & Sophia</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={toggleBot}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${botEnabled
-                                        ? 'bg-green-600 hover:bg-green-700'
-                                        : 'bg-orange-600 hover:bg-orange-700'
-                                    }`}
-                            >
-                                {botEnabled ? (
-                                    <>
-                                        <Bot className="w-4 h-4" />
-                                        AI Active
-                                    </>
-                                ) : (
-                                    <>
-                                        <User className="w-4 h-4" />
-                                        Manual Mode
-                                    </>
-                                )}
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all"
-                            >
-                                <Unlock className="w-4 h-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </div>
+        <div className="flex flex-col h-screen bg-zinc-950 text-white overflow-hidden">
+            <style>{`
+                ::-webkit-scrollbar { width: 4px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+                .collapse-body {
+                    overflow: hidden;
+                    transition: max-height 0.3s ease, opacity 0.25s ease, padding 0.25s ease;
+                }
+                .collapse-body.open { max-height: 700px; opacity: 1; }
+                .collapse-body.closed { max-height: 0; opacity: 0; }
+            `}</style>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-gray-700 rounded-lg p-4">
-                            <div className="text-gray-400 text-sm mb-1">Total Messages</div>
-                            <div className="text-2xl font-bold">{stats.totalMessages}</div>
-                        </div>
-                        <div className="bg-gray-700 rounded-lg p-4">
-                            <div className="text-gray-400 text-sm mb-1">Sophia</div>
-                            <div className="text-2xl font-bold text-pink-400">{stats.sophiaMessages}</div>
-                        </div>
-                        <div className="bg-gray-700 rounded-lg p-4">
-                            <div className="text-gray-400 text-sm mb-1">Adam (AI)</div>
-                            <div className="text-2xl font-bold text-purple-400">{stats.adamMessages - stats.manualMessages}</div>
-                        </div>
-                        <div className="bg-gray-700 rounded-lg p-4">
-                            <div className="text-gray-400 text-sm mb-1">Manual</div>
-                            <div className="text-2xl font-bold text-orange-400">{stats.manualMessages}</div>
-                        </div>
-                        <div className="bg-gray-700 rounded-lg p-4">
-                            <div className="text-gray-400 text-sm mb-1">Last Active</div>
-                            <div className="text-xs font-medium">{stats.lastActive.split(' ')[1] || 'N/A'}</div>
-                        </div>
+            <div className="flex-shrink-0 bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
+                        <Eye className="w-3.5 h-3.5 text-zinc-300" />
                     </div>
+                    <span className="font-semibold text-sm">Adam Panel</span>
+                    {/* <span className="text-zinc-700 text-sm">·</span>
+                    <span className="text-zinc-500 text-xs">Adam x Sophia</span> */}
+                </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={toggleBot}
+                        className={"flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (botEnabled ? "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-white text-zinc-900 hover:bg-zinc-200")}
+                    >
+                        {botEnabled ? <><Bot className="w-3 h-3" />AI On</> : <><User className="w-3 h-3" />Manual</>}
+                    </button>
+                    <button onClick={handleLogout} className="p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors">
+                        <Unlock className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Config */}
-                <div className="lg:col-span-1 space-y-6">
-                    {/* Configuration Panel */}
-                    <div className="bg-gray-800 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
-                                <Settings className="w-5 h-5" />
-                                Configuration
-                            </h2>
-                            <button
-                                onClick={() => setEditMode(!editMode)}
-                                className="flex items-center gap-2 px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-all"
-                            >
-                                <Edit2 className="w-4 h-4" />
-                                {editMode ? 'Cancel' : 'Edit'}
-                            </button>
-                        </div>
+            <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
 
-                        <div className="space-y-4">
+                {/* STATS  */}
+                <div className="flex-shrink-0 border-b border-zinc-800">
+                    <button
+                        onClick={() => setStatsOpen(!statsOpen)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-900 transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <BarChart2 className="w-3.5 h-3.5 text-zinc-500" />
+                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Stats</span>
+                            <span className="text-zinc-600 text-xs normal-case tracking-normal font-normal">{stats.totalMessages} pesan</span>
+                        </div>
+                        {statsOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
+                    </button>
+                    <div className={"collapse-body " + (statsOpen ? "open" : "closed")}>
+                        <div className="px-4 pb-4 grid grid-cols-2 gap-2">
+                            {[
+                                { label: 'Total', value: stats.totalMessages, color: 'text-white' },
+                                { label: 'Sophia', value: stats.sophiaMessages, color: 'text-zinc-300' },
+                                { label: 'Adam (AI)', value: stats.adamMessages - stats.manualMessages, color: 'text-zinc-300' },
+                                { label: 'Manual', value: stats.manualMessages, color: 'text-zinc-400' },
+                            ].map((s) => (
+                                <div key={s.label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+                                    <div className="text-zinc-600 text-xs mb-1">{s.label}</div>
+                                    <div className={"text-xl font-bold " + s.color}>{s.value}</div>
+                                </div>
+                            ))}
+                            <div className="col-span-2 bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+                                <div className="text-zinc-600 text-xs mb-1">Last Active</div>
+                                <div className="text-sm text-zinc-300">{stats.lastActive}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* CONFIG  */}
+                <div className="flex-shrink-0 border-b border-zinc-800">
+                    <button
+                        onClick={() => setConfigOpen(!configOpen)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-zinc-900 transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Settings className="w-3.5 h-3.5 text-zinc-500" />
+                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Configuration</span>
+                        </div>
+                        {configOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
+                    </button>
+                    <div className={"collapse-body " + (configOpen ? "open" : "closed")}>
+                        <div className="px-4 pb-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-zinc-600">Edit config</span>
+                                <button
+                                    onClick={() => setEditMode(!editMode)}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-xs text-zinc-300 transition-all"
+                                >
+                                    {editMode ? <><X className="w-3 h-3" />Cancel</> : <><Edit2 className="w-3 h-3" />Edit</>}
+                                </button>
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
-                                    <Key className="w-4 h-4" />
-                                    Chatbot Access Password
-                                </label>
+                                <label className="flex items-center gap-1 text-xs text-zinc-500 mb-1.5"><Key className="w-3 h-3" />Access Password</label>
                                 <input
                                     type="text"
                                     value={chatbotPassword}
                                     onChange={(e) => setChatbotPassword(e.target.value)}
                                     disabled={!editMode}
-                                    className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm"
-                                    placeholder="Password for chatbot access"
+                                    className="w-full px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 disabled:opacity-40 text-sm"
+                                    placeholder="Chatbot access password"
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Users must enter this password to access the chatbot
-                                </p>
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">
-                                    Gemini API Key
-                                </label>
+                                <label className="block text-xs text-zinc-500 mb-1.5">Gemini API Key</label>
                                 <input
                                     type="password"
                                     value={anthropicApiKey}
                                     onChange={(e) => setAnthropicApiKey(e.target.value)}
                                     disabled={!editMode}
-                                    className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm"
+                                    className="w-full px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 disabled:opacity-40 text-sm"
                                     placeholder="AIza..."
                                 />
                             </div>
-
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">
-                                    System Prompt / Personality
-                                </label>
+                                <label className="block text-xs text-zinc-500 mb-1.5">System Prompt</label>
                                 <textarea
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
                                     disabled={!editMode}
-                                    rows={8}
-                                    className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm font-mono"
-                                    placeholder="Enter system prompt..."
+                                    rows={5}
+                                    className="w-full px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 disabled:opacity-40 text-sm font-mono resize-none"
+                                    placeholder="System prompt..."
                                 />
                             </div>
-
                             {editMode && (
                                 <button
                                     onClick={saveConfig}
                                     disabled={saving}
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-all disabled:opacity-50"
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all disabled:opacity-50"
                                 >
                                     <Save className="w-4 h-4" />
                                     {saving ? 'Saving...' : 'Save Configuration'}
@@ -465,139 +396,96 @@ export default function Admin() {
                     </div>
                 </div>
 
-                {/* Right Column - Chat Monitor */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Manual Message Input (Only when bot is disabled) */}
-                    {!botEnabled && (
-                        <div className="bg-gradient-to-r from-orange-900 to-orange-800 rounded-lg p-6 border-2 border-orange-600">
-                            <div className="flex items-center gap-2 mb-4">
-                                <User className="w-5 h-5 text-orange-300" />
-                                <h3 className="text-lg font-bold text-orange-100">Send Manual Message as Adam</h3>
-                            </div>
-                            <div className="flex gap-3">
-                                <textarea
-                                    value={manualMessage}
-                                    onChange={(e) => setManualMessage(e.target.value)}
-                                    onKeyPress={handleManualMessageKeyPress}
-                                    placeholder="Type your message as Adam..."
-                                    className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                                    rows="2"
-                                    disabled={sendingMessage}
-                                />
-                                <button
-                                    onClick={sendManualMessage}
-                                    disabled={sendingMessage || !manualMessage.trim()}
-                                    className="px-6 bg-orange-600 hover:bg-orange-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                                >
-                                    <Send className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <p className="text-xs text-orange-300 mt-2">
-                                💡 Bot AI is disabled. Messages will be sent manually as Adam.
-                            </p>
+                {/* SEARCH + CONTROLS */}
+                <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-zinc-800 bg-zinc-900/40">
+                    <Search className="w-3.5 h-3.5 text-zinc-600 flex-shrink-0" />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Search chat..."
+                        className="flex-1 bg-transparent text-white placeholder-zinc-600 focus:outline-none text-sm"
+                    />
+                    {searchTerm && <span className="text-zinc-600 text-xs">{filteredMessages.length}</span>}
+                    <button onClick={downloadChat} disabled={messages.length === 0} className="p-1.5 text-zinc-600 hover:text-zinc-300 disabled:opacity-30 transition-colors" title="Download">
+                        <Download className="w-4 h-4" />
+                    </button>
+                    {/* <button onClick={clearChat} disabled={messages.length === 0} className="p-1.5 text-zinc-600 hover:text-red-400 disabled:opacity-30 transition-colors" title="Clear">
+                        <X className="w-4 h-4" />
+                    </button> */}
+                </div>
+
+                {/* CHAT HISTORY */}
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                    {filteredMessages.length === 0 ? (
+                        <div className="text-center text-zinc-700 py-16 text-sm">
+                            {messages.length === 0 ? 'Belum ada chat history' : 'No messages found'}
                         </div>
-                    )}
-
-                    {/* Controls */}
-                    <div className="bg-gray-800 rounded-lg p-4 flex flex-wrap gap-4 items-center justify-between">
-                        <div className="flex gap-2 flex-wrap">
-                            <button
-                                onClick={downloadChat}
-                                disabled={messages.length === 0}
-                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Download className="w-4 h-4" />
-                                Download
-                            </button>
-                            <button
-                                onClick={clearChat}
-                                disabled={messages.length === 0}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Clear History
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Search */}
-                    <div className="bg-gray-800 rounded-lg p-4">
-                        <div className="flex items-center gap-2">
-                            <Search className="w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search messages..."
-                                className="flex-1 bg-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Chat History */}
-                    <div className="bg-gray-800 rounded-lg p-6">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <MessageCircle className="w-5 h-5" />
-                            Chat History
-                            {searchTerm && (
-                                <span className="text-sm text-gray-400">
-                                    ({filteredMessages.length} results)
-                                </span>
-                            )}
-                        </h2>
-
-                        {filteredMessages.length === 0 ? (
-                            <div className="text-center text-gray-400 py-12">
-                                {messages.length === 0 ? 'Belum ada chat history' : 'No messages found'}
-                            </div>
-                        ) : (
-                            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                                {filteredMessages.map((msg, idx) => (
-                                    <div
-                                        key={msg.id || idx}
-                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div className="max-w-[75%]">
-                                            <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                                                <span className="font-medium flex items-center gap-1">
-                                                    {msg.role === 'user' ? (
-                                                        'Sophia'
-                                                    ) : (
-                                                        <>
-                                                            Adam
-                                                            {msg.manual ? (
-                                                                <span className="text-orange-400 flex items-center gap-1">
-                                                                    <User className="w-3 h-3" />
-                                                                    (Manual)
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-purple-400 flex items-center gap-1">
-                                                                    <Bot className="w-3 h-3" />
-                                                                    (AI)
-                                                                </span>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </span>
-                                                <span>•</span>
-                                                <span>{new Date(msg.timestamp).toLocaleString('id-ID')}</span>
-                                            </div>
-                                            <div
-                                                className={`rounded-2xl px-4 py-3 ${msg.role === 'user'
-                                                        ? 'bg-gradient-to-r from-pink-600 to-pink-500'
-                                                        : msg.manual
-                                                            ? 'bg-gradient-to-r from-orange-700 to-orange-600'
-                                                            : 'bg-gray-700'
-                                                    }`}
-                                            >
-                                                <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>
-                                            </div>
-                                        </div>
+                    ) : (
+                        filteredMessages.map((msg, idx) => (
+                            <div key={msg.id || idx} className={"flex " + (msg.role === 'user' ? 'justify-end' : 'justify-start')}>
+                                <div className="max-w-[78%]">
+                                    <div className="text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1">
+                                        <span className="font-medium text-zinc-400">{msg.role === 'user' ? 'Sophia' : 'Adam'}</span>
+                                        {msg.role === 'model' && (
+                                            <span className="flex items-center gap-0.5 text-zinc-600">
+                                                {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
+                                            </span>
+                                        )}
+                                        <span className="text-zinc-800">·</span>
+                                        <span>
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', {
+                                                day: '2-digit', month: '2-digit', year: '2-digit',
+                                                hour: '2-digit', minute: '2-digit'
+                                            })}
+                                        </span>
                                     </div>
-                                ))}
-                                <div ref={messagesEndRef} />
+                                    <div className={"rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
+                                        msg.role === 'user'
+                                            ? 'bg-zinc-700 text-zinc-100'
+                                            : msg.manual
+                                                ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
+                                                : 'bg-zinc-800 text-zinc-300'
+                                    )}>
+                                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                    </div>
+                                </div>
                             </div>
-                        )}
+                        ))
+                    )}
+                    <div ref={messagesEndRef} />
+                </div>
+            </div>
+
+            {/* MANUAL INPUT */}
+            <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-800">
+                {!botEnabled && (
+                    <div className="px-4 pt-2 flex items-center gap-1.5">
+                        <User className="w-3 h-3 text-zinc-500" />
+                        <span className="text-xs text-zinc-500">Manual mode</span>
                     </div>
+                )}
+                <div className="flex items-end gap-2 px-4 py-3">
+                    <textarea
+                        value={manualMessage}
+                        onChange={(e) => setManualMessage(e.target.value)}
+                        onKeyPress={handleManualMessageKeyPress}
+                        placeholder={botEnabled ? "..." : "..."}
+                        className="flex-1 bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-zinc-500 resize-none"
+                        rows="1"
+                        disabled={sendingMessage}
+                        style={{ maxHeight: '120px' }}
+                    />
+                    <button
+                        onClick={sendManualMessage}
+                        disabled={sendingMessage || !manualMessage.trim()}
+                        className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-xl bg-white text-zinc-900 hover:bg-zinc-200 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
+                    >
+                        {sendingMessage
+                            ? <div className="w-4 h-4 border-2 border-zinc-400 border-t-zinc-800 rounded-full animate-spin" />
+                            : <Send className="w-4 h-4" />
+                        }
+                    </button>
                 </div>
             </div>
         </div>
