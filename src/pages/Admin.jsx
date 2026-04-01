@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, RefreshCw, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2 } from 'lucide-react';
+import { Eye, Download, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2, Key, Send, Bot, User } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -18,10 +18,13 @@ export default function Admin() {
     const [searchTerm, setSearchTerm] = useState('');
     const [systemPrompt, setSystemPrompt] = useState('');
     const [anthropicApiKey, setAnthropicApiKey] = useState('');
-    const [adminPassword, setAdminPassword] = useState('');
+    const [chatbotPassword, setChatbotPassword] = useState('');
+    const [botEnabled, setBotEnabled] = useState(true);
     const [editMode, setEditMode] = useState(false);
     const [saving, setSaving] = useState(false);
     const [initializing, setInitializing] = useState(true);
+    const [manualMessage, setManualMessage] = useState('');
+    const [sendingMessage, setSendingMessage] = useState(false);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
     const authRef = useRef(null);
@@ -37,17 +40,25 @@ export default function Admin() {
         }
     }, [isAuthenticated]);
 
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const initFirebase = async () => {
         try {
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-            const { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
             const { getAuth, signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
 
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             const auth = getAuth(app);
 
-            dbRef.current = { db, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot };
+            dbRef.current = { db, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc };
             authRef.current = { auth, signInWithEmailAndPassword, signOut };
 
             setInitializing(false);
@@ -96,7 +107,8 @@ export default function Admin() {
                 const data = configDoc.data();
                 setSystemPrompt(data.systemPrompt || '');
                 setAnthropicApiKey(data.anthropicApiKey || '');
-                setAdminPassword(data.adminPassword || '');
+                setChatbotPassword(data.accessPassword || '');
+                setBotEnabled(data.botEnabled !== false); // Default true
             }
         } catch (error) {
             console.error('Failed to load config:', error);
@@ -110,7 +122,8 @@ export default function Admin() {
             await updateDoc(doc(db, 'config', 'chatbot'), {
                 systemPrompt,
                 anthropicApiKey,
-                adminPassword
+                accessPassword: chatbotPassword,
+                botEnabled
             });
             alert('Configuration saved successfully!');
             setEditMode(false);
@@ -119,6 +132,58 @@ export default function Admin() {
             console.error(error);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const toggleBot = async () => {
+        const newBotEnabled = !botEnabled;
+        setBotEnabled(newBotEnabled);
+
+        try {
+            const { db, doc, updateDoc } = dbRef.current;
+            await updateDoc(doc(db, 'config', 'chatbot'), {
+                botEnabled: newBotEnabled
+            });
+
+            const statusMessage = newBotEnabled
+                ? '🤖 Bot AI telah diaktifkan kembali'
+                : '👤 Bot AI dinonaktifkan - Admin mode aktif';
+            alert(statusMessage);
+        } catch (error) {
+            console.error('Failed to toggle bot:', error);
+            setBotEnabled(!newBotEnabled); // Revert on error
+            alert('Failed to toggle bot status');
+        }
+    };
+
+    const sendManualMessage = async () => {
+        if (!manualMessage.trim() || sendingMessage) return;
+
+        setSendingMessage(true);
+        try {
+            const { db, collection, addDoc } = dbRef.current;
+
+            const message = {
+                role: 'model',
+                content: manualMessage,
+                timestamp: new Date().toISOString(),
+                manual: true // Mark as manually sent
+            };
+
+            await addDoc(collection(db, 'chats'), message);
+            setManualMessage('');
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            alert('Failed to send message');
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
+    const handleManualMessageKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendManualMessage();
         }
     };
 
@@ -136,7 +201,8 @@ export default function Admin() {
                             id: doc.id,
                             role: data.role,
                             content: data.content,
-                            timestamp: data.timestamp
+                            timestamp: data.timestamp,
+                            manual: data.manual || false
                         });
                     }
                 });
@@ -150,7 +216,8 @@ export default function Admin() {
     const downloadChat = () => {
         const chatText = messages.map(m => {
             const time = new Date(m.timestamp).toLocaleString('id-ID');
-            return `[${time}] ${m.role === 'user' ? 'Sophia' : 'Adam'}: ${m.content}`;
+            const sender = m.role === 'user' ? 'Sophia' : `Adam${m.manual ? ' (Manual)' : ' (AI)'}`;
+            return `[${time}] ${sender}: ${m.content}`;
         }).join('\n\n');
 
         const blob = new Blob([chatText], { type: 'text/plain' });
@@ -188,7 +255,8 @@ export default function Admin() {
     const stats = {
         totalMessages: messages.length,
         sophiaMessages: messages.filter(m => m.role === 'user').length,
-        adamMessages: messages.filter(m => m.role === 'assistant').length,
+        adamMessages: messages.filter(m => m.role === 'model').length,
+        manualMessages: messages.filter(m => m.manual).length,
         lastActive: messages.length > 0
             ? new Date(messages[messages.length - 1].timestamp).toLocaleString('id-ID')
             : 'Belum ada aktivitas'
@@ -261,17 +329,38 @@ export default function Admin() {
                                 <p className="text-sm text-gray-400">Monitoring: Adam & Sophia</p>
                             </div>
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all"
-                        >
-                            <Unlock className="w-4 h-4" />
-                            Logout
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={toggleBot}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${botEnabled
+                                        ? 'bg-green-600 hover:bg-green-700'
+                                        : 'bg-orange-600 hover:bg-orange-700'
+                                    }`}
+                            >
+                                {botEnabled ? (
+                                    <>
+                                        <Bot className="w-4 h-4" />
+                                        AI Active
+                                    </>
+                                ) : (
+                                    <>
+                                        <User className="w-4 h-4" />
+                                        Manual Mode
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all"
+                            >
+                                <Unlock className="w-4 h-4" />
+                                Logout
+                            </button>
+                        </div>
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="bg-gray-700 rounded-lg p-4">
                             <div className="text-gray-400 text-sm mb-1">Total Messages</div>
                             <div className="text-2xl font-bold">{stats.totalMessages}</div>
@@ -282,7 +371,11 @@ export default function Admin() {
                         </div>
                         <div className="bg-gray-700 rounded-lg p-4">
                             <div className="text-gray-400 text-sm mb-1">Adam (AI)</div>
-                            <div className="text-2xl font-bold text-purple-400">{stats.adamMessages}</div>
+                            <div className="text-2xl font-bold text-purple-400">{stats.adamMessages - stats.manualMessages}</div>
+                        </div>
+                        <div className="bg-gray-700 rounded-lg p-4">
+                            <div className="text-gray-400 text-sm mb-1">Manual</div>
+                            <div className="text-2xl font-bold text-orange-400">{stats.manualMessages}</div>
                         </div>
                         <div className="bg-gray-700 rounded-lg p-4">
                             <div className="text-gray-400 text-sm mb-1">Last Active</div>
@@ -313,8 +406,26 @@ export default function Admin() {
 
                         <div className="space-y-4">
                             <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
+                                    <Key className="w-4 h-4" />
+                                    Chatbot Access Password
+                                </label>
+                                <input
+                                    type="text"
+                                    value={chatbotPassword}
+                                    onChange={(e) => setChatbotPassword(e.target.value)}
+                                    disabled={!editMode}
+                                    className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm"
+                                    placeholder="Password for chatbot access"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Users must enter this password to access the chatbot
+                                </p>
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                                    Anthropic API Key
+                                    Gemini API Key
                                 </label>
                                 <input
                                     type="password"
@@ -322,7 +433,7 @@ export default function Admin() {
                                     onChange={(e) => setAnthropicApiKey(e.target.value)}
                                     disabled={!editMode}
                                     className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm"
-                                    placeholder="sk-ant-..."
+                                    placeholder="AIza..."
                                 />
                             </div>
 
@@ -334,7 +445,7 @@ export default function Admin() {
                                     value={systemPrompt}
                                     onChange={(e) => setSystemPrompt(e.target.value)}
                                     disabled={!editMode}
-                                    rows={12}
+                                    rows={8}
                                     className="w-full px-3 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 text-sm font-mono"
                                     placeholder="Enter system prompt..."
                                 />
@@ -356,6 +467,37 @@ export default function Admin() {
 
                 {/* Right Column - Chat Monitor */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Manual Message Input (Only when bot is disabled) */}
+                    {!botEnabled && (
+                        <div className="bg-gradient-to-r from-orange-900 to-orange-800 rounded-lg p-6 border-2 border-orange-600">
+                            <div className="flex items-center gap-2 mb-4">
+                                <User className="w-5 h-5 text-orange-300" />
+                                <h3 className="text-lg font-bold text-orange-100">Send Manual Message as Adam</h3>
+                            </div>
+                            <div className="flex gap-3">
+                                <textarea
+                                    value={manualMessage}
+                                    onChange={(e) => setManualMessage(e.target.value)}
+                                    onKeyPress={handleManualMessageKeyPress}
+                                    placeholder="Type your message as Adam..."
+                                    className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                                    rows="2"
+                                    disabled={sendingMessage}
+                                />
+                                <button
+                                    onClick={sendManualMessage}
+                                    disabled={sendingMessage || !manualMessage.trim()}
+                                    className="px-6 bg-orange-600 hover:bg-orange-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <p className="text-xs text-orange-300 mt-2">
+                                💡 Bot AI is disabled. Messages will be sent manually as Adam.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Controls */}
                     <div className="bg-gray-800 rounded-lg p-4 flex flex-wrap gap-4 items-center justify-between">
                         <div className="flex gap-2 flex-wrap">
@@ -416,16 +558,35 @@ export default function Admin() {
                                     >
                                         <div className="max-w-[75%]">
                                             <div className="text-xs text-gray-400 mb-1 flex items-center gap-2">
-                                                <span className="font-medium">
-                                                    {msg.role === 'user' ? 'Sophia' : 'Adam (AI)'}
+                                                <span className="font-medium flex items-center gap-1">
+                                                    {msg.role === 'user' ? (
+                                                        'Sophia'
+                                                    ) : (
+                                                        <>
+                                                            Adam
+                                                            {msg.manual ? (
+                                                                <span className="text-orange-400 flex items-center gap-1">
+                                                                    <User className="w-3 h-3" />
+                                                                    (Manual)
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-purple-400 flex items-center gap-1">
+                                                                    <Bot className="w-3 h-3" />
+                                                                    (AI)
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </span>
                                                 <span>•</span>
                                                 <span>{new Date(msg.timestamp).toLocaleString('id-ID')}</span>
                                             </div>
                                             <div
                                                 className={`rounded-2xl px-4 py-3 ${msg.role === 'user'
-                                                    ? 'bg-gradient-to-r from-pink-600 to-pink-500'
-                                                    : 'bg-gray-700'
+                                                        ? 'bg-gradient-to-r from-pink-600 to-pink-500'
+                                                        : msg.manual
+                                                            ? 'bg-gradient-to-r from-orange-700 to-orange-600'
+                                                            : 'bg-gray-700'
                                                     }`}
                                             >
                                                 <p className="whitespace-pre-wrap break-words text-sm">{msg.content}</p>

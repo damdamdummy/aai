@@ -10,6 +10,9 @@ const firebaseConfig = {
     appId: "1:44413551728:web:4ce7110d225dea46a3e0b5"
 };
 
+// Export the config for use in Admin page
+export { firebaseConfig };
+
 export default function AdamChatbot() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -21,6 +24,7 @@ export default function AdamChatbot() {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [checkingPassword, setCheckingPassword] = useState(false);
+    const [botEnabled, setBotEnabled] = useState(true);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
 
@@ -48,7 +52,7 @@ export default function AdamChatbot() {
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
-            alert('Failed to initialize. Check Firebase config.');
+            alert('Failed to initialize. Please check Firebase configuration.');
             setInitializing(false);
         }
     };
@@ -75,11 +79,12 @@ export default function AdamChatbot() {
                     await loadConfig();
                     await loadChatHistory();
                     listenToChatUpdates();
+                    listenToConfigUpdates();
                 } else {
-                    setPasswordError('Wrong password! Try again </3');
+                    setPasswordError('Wrong password! Try again 💔');
                 }
             } else {
-                setPasswordError('Conf not found');
+                setPasswordError('Configuration not found');
             }
         } catch (error) {
             console.error('Password check error:', error);
@@ -98,13 +103,28 @@ export default function AdamChatbot() {
                 const data = configDoc.data();
                 setSystemPrompt(data.systemPrompt || '');
                 setApiKey(data.anthropicApiKey || '');
-                console.log('Config loaded, API key exists:', !!data.anthropicApiKey);
+                setBotEnabled(data.botEnabled !== false); // Default true
+                console.log('Config loaded, botEnabled:', data.botEnabled !== false);
             } else {
                 console.error('Config document not found!');
             }
         } catch (error) {
             console.error('Failed to load config:', error);
         }
+    };
+
+    // Listen to config changes in realtime (so bot on/off reflects immediately)
+    const listenToConfigUpdates = () => {
+        const { db, doc, onSnapshot } = dbRef.current;
+        onSnapshot(doc(db, 'config', 'chatbot'), (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.data();
+                setSystemPrompt(data.systemPrompt || '');
+                setApiKey(data.anthropicApiKey || '');
+                setBotEnabled(data.botEnabled !== false);
+                console.log('Config updated realtime, botEnabled:', data.botEnabled !== false);
+            }
+        });
     };
 
     const loadChatHistory = async () => {
@@ -194,9 +214,16 @@ export default function AdamChatbot() {
 
         const currentInput = input;
         setInput('');
-        setLoading(true);
 
         await saveMessage(userMessage);
+
+        // Jika bot dimatikan admin, hanya simpan pesan user — tidak panggil AI
+        if (!botEnabled) {
+            console.log('Bot is disabled by admin, skipping AI response.');
+            return;
+        }
+
+        setLoading(true);
 
         try {
             const geminiHistory = messages
@@ -510,6 +537,7 @@ export default function AdamChatbot() {
                 }
             `}</style>
 
+            {/* Header */}
             <div className="bg-gradient-to-r from-pink-400 via-purple-400 to-pink-500 text-white p-6 shadow-xl border-b-4 border-pink-600">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center justify-between">
@@ -517,7 +545,14 @@ export default function AdamChatbot() {
                             <Heart className="w-10 h-10 fill-current pixel-heart" />
                             <div>
                                 <h1 className="text-2xl retro-title mb-2">Adam ♥</h1>
-                                <p className="text-sm retro-text opacity-90">~ Always here for you, Yang ~</p>
+                                {botEnabled ? (
+                                    <p className="text-sm retro-text opacity-90">~ Still here for you ~</p>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
+                                        <p className="text-sm retro-text text-green-200">~ Bukan AI ~</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="flex gap-1">
@@ -529,6 +564,7 @@ export default function AdamChatbot() {
                 </div>
             </div>
 
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
                 {messages.map((msg, idx) => (
                     <div
@@ -567,13 +603,22 @@ export default function AdamChatbot() {
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t-4 border-pink-200 bg-white p-6 shadow-2xl">
-                <div className="max-w-4xl mx-auto flex gap-3">
+            {/* Input */}
+            <div className="border-t-4 border-pink-200 bg-white shadow-2xl">
+                {/* {!botEnabled && (
+                    <div className="max-w-4xl mx-auto px-6 pt-3">
+                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-4 py-2">
+                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+                            <p className="retro-text text-green-700 text-sm">Slow response 💬</p>
+                        </div>
+                    </div>
+                )} */}
+                <div className="max-w-4xl mx-auto flex gap-3 p-6">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="..."
+                        placeholder={botEnabled ? "..." : "..."}
                         className="flex-1 input-box border-pink-300 rounded-2xl px-5 py-4 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
                         rows="1"
                         disabled={loading}
