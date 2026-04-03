@@ -542,21 +542,21 @@ export default function AdamChatbot() {
                         <div className="flex items-center gap-3">
                             <Heart className="w-7 h-7 fill-current pixel-heart" />
                             <div>
-                                <h1 className="text-lg retro-title mb-1">Adam ♥</h1>
+                                <h1 className="text-sm retro-title mb-0.5 flex items-center gap-1">Adam Sayang<img src="/kissingsmiley.png" alt="love" style={{ width: '1.5em', height: '1.5em', display: 'inline-block', verticalAlign: 'middle' }} /></h1>
                                 {botEnabled ? (
-                                    <p className="text-sm retro-text opacity-90">~ Still here for you ~</p>
+                                    <p className="text-xs retro-text opacity-90">~ Still here for you ~</p>
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
-                                        <p className="text-sm retro-text text-green-200">~ 224 ~</p>
+                                        <p className="text-xs retro-text text-green-200">~ 224 ~</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                         <div className="flex gap-1">
-                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse" />
-                            <Heart className="w-3 h-3 text-pink-400 fill-current animate-pulse delay-75" />
-                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse delay-150" />
+                            <Heart className="w-3 h-3 text-pink-300 fill-current animate-pulse" />
+                            <Heart className="w-2.5 h-2.5 text-pink-400 fill-current animate-pulse delay-75" />
+                            <Heart className="w-3 h-3 text-pink-300 fill-current animate-pulse delay-150" />
                         </div>
                     </div>
                 </div>
@@ -617,30 +617,30 @@ export default function AdamChatbot() {
 
             {/* Input */}
             <div className="border-t-4 border-pink-200 bg-white shadow-2xl">
-                {/* {!botEnabled && (
-                    <div className="max-w-4xl mx-auto px-6 pt-3">
-                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-4 py-2">
-                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
-                            <p className="retro-text text-green-700 text-sm">Slow response 💬</p>
+                {botEnabled && (
+                    <div className="max-w-4xl mx-auto px-4 pt-2">
+                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-3 py-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+                            <p className="retro-text text-green-700 text-sm">Bot is activated 💬</p>
                         </div>
                     </div>
-                )} */}
-                <div className="max-w-4xl mx-auto flex gap-3 p-6">
+                )}
+                <div className="max-w-4xl mx-auto flex gap-2 px-4 py-3">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder={botEnabled ? "..." : "..."}
-                        className="flex-1 input-box border-pink-300 rounded-2xl px-5 py-4 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
+                        className="flex-1 input-box border-pink-300 rounded-xl px-4 py-2 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
                         rows="1"
                         disabled={loading}
                     />
                     <button
                         onClick={sendMessage}
                         disabled={loading || !input.trim()}
-                        className="send-button bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-2xl px-8 py-4 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
+                        className="send-button bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-xl px-5 py-2 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
                     >
-                        <Send className="w-6 h-6" />
+                        <Send className="w-5 h-5" />
                     </button>
                 </div>
             </div>
