@@ -6,4 +6,11 @@ export default defineConfig({
   plugins: [react()],
   base: '/',
   build: { outDir: 'docs' }
+  //,
+  // server: {
+  //   host: true,
+  //   hmr: false,
+  //   allowedHosts: true,
+  //   origin: 'http://localhost:5173'
+  // }
 })

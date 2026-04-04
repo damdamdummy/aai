@@ -223,7 +223,7 @@ export default function Admin() {
                         <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-6 h-6 text-zinc-300" />
                         </div>
-                        <h1 className="text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
+                        <h1 className="interf text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
                     </div>
                     <div className="space-y-3">
                         <input
@@ -231,7 +231,7 @@ export default function Admin() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            className="interf w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
                             placeholder="Email"
                         />
                         <input
@@ -239,12 +239,12 @@ export default function Admin() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            className="interf w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
                             placeholder="Password"
                         />
                         <button
                             onClick={handleLogin}
-                            className="w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all"
+                            className="interf w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all"
                         >
                             Login
                         </button>
@@ -266,6 +266,16 @@ export default function Admin() {
                 }
                 .collapse-body.open { max-height: 700px; opacity: 1; }
                 .collapse-body.closed { max-height: 0; opacity: 0; }
+
+                @font-face {
+                    font-family: 'SFPro';
+                    src: url('/fonts/sfptb.ttf') format('truetype');
+                    font-weight: normal;
+                    font-style: normal;
+                }
+                .interf {
+                    font-family: 'SFPro', -apple-system, 'SF Pro Text', sans-serif;
+                }
             `}</style>
 
             <div className="flex-shrink-0 bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
@@ -273,7 +283,7 @@ export default function Admin() {
                     <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
                         <Eye className="w-3.5 h-3.5 text-zinc-300" />
                     </div>
-                    <span className="font-semibold text-sm">Adam Panel</span>
+                    <span className="interf font-bold text-sm">My Panel</span>
                     {/* <span className="text-zinc-700 text-sm">·</span>
                     <span className="text-zinc-500 text-xs">Adam x Sophia</span> */}
                 </div>
@@ -300,7 +310,7 @@ export default function Admin() {
                     >
                         <div className="flex items-center gap-2">
                             <BarChart2 className="w-3.5 h-3.5 text-zinc-500" />
-                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Stats</span>
+                            <span className="interf text-xs font-medium text-zinc-400 uppercase tracking-widest">Stats</span>
                             <span className="text-zinc-600 text-xs normal-case tracking-normal font-normal">{stats.totalMessages} pesan</span>
                         </div>
                         {statsOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
@@ -334,7 +344,7 @@ export default function Admin() {
                     >
                         <div className="flex items-center gap-2">
                             <Settings className="w-3.5 h-3.5 text-zinc-500" />
-                            <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Configuration</span>
+                            <span className="interf text-xs font-medium text-zinc-400 uppercase tracking-widest">Configuration</span>
                         </div>
                         {configOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
                     </button>
@@ -404,10 +414,10 @@ export default function Admin() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search chat..."
-                        className="flex-1 bg-transparent text-white placeholder-zinc-600 focus:outline-none text-sm"
+                        className="interf flex-1 bg-transparent text-white placeholder-zinc-600 focus:outline-none text-sm"
                     />
-                    {searchTerm && <span className="text-zinc-600 text-xs">{filteredMessages.length}</span>}
-                    <button onClick={downloadChat} disabled={messages.length === 0} className="p-1.5 text-zinc-600 hover:text-zinc-300 disabled:opacity-30 transition-colors" title="Download">
+                    {searchTerm && <span className="text-zinc-500 text-xs">{filteredMessages.length}</span>}
+                    <button onClick={downloadChat} disabled={messages.length === 0} className="p-1.5 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors" title="Download">
                         <Download className="w-4 h-4" />
                     </button>
                     {/* <button onClick={clearChat} disabled={messages.length === 0} className="p-1.5 text-zinc-600 hover:text-red-400 disabled:opacity-30 transition-colors" title="Clear">
@@ -423,10 +433,10 @@ export default function Admin() {
                         </div>
                     ) : (
                         filteredMessages.map((msg, idx) => (
-                            <div key={msg.id || idx} className={"flex " + (msg.role === 'user' ? 'justify-end' : 'justify-start')}>
-                                <div className="max-w-[78%]">
-                                    <div className="text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1">
-                                        <span className="font-medium text-zinc-400">{msg.role === 'user' ? 'Sophia' : 'Adam'}</span>
+                            <div key={msg.id || idx} className={"flex " + (msg.role === 'user' ? 'justify-start' : 'justify-end')}>
+                                <div className="max-w-[78%] flex flex-col">
+                                    <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
+                                        <span className="font-medium text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
                                         {msg.role === 'model' && (
                                             <span className="flex items-center gap-0.5 text-zinc-600">
                                                 {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
@@ -440,14 +450,16 @@ export default function Admin() {
                                             })}
                                         </span>
                                     </div>
-                                    <div className={"rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
-                                        msg.role === 'user'
-                                            ? 'bg-zinc-700 text-zinc-100'
-                                            : msg.manual
-                                                ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
-                                                : 'bg-zinc-800 text-zinc-300'
-                                    )}>
-                                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                    <div className={"flex " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
+                                        <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
+                                            msg.role === 'user'
+                                                ? 'bg-zinc-700 text-zinc-100'
+                                                : msg.manual
+                                                    ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
+                                                    : 'bg-zinc-800 text-zinc-300'
+                                        )}>
+                                            <p className="interf font-semibold whitespace-pre-wrap break-words">{msg.content}</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

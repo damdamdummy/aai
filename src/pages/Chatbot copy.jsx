@@ -26,17 +26,9 @@ export default function AdamChatbot() {
     const [botEnabled, setBotEnabled] = useState(true);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
-    const inputRef = useRef(null);
-    const messagesContainerRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    const handleInputFocus = () => {
-        setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 400);
     };
 
     useEffect(() => {
@@ -360,7 +352,7 @@ export default function AdamChatbot() {
 
     if (initializing) {
         return (
-            <div className="app-shell flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
                 <div className="text-center">
                     <div className="relative">
                         <Loader2 className="w-16 h-16 animate-spin text-pink-500 mx-auto mb-4" />
@@ -374,18 +366,9 @@ export default function AdamChatbot() {
 
     if (!isAuthenticated) {
         return (
-            <div className="app-shell flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 px-2">
+            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-                    
-                    .app-shell {
-                        position: fixed;
-                        top: 0; left: 0; right: 0; bottom: 0;
-                        height: 100dvh;
-                        overflow: hidden;
-                        display: flex;
-                        flex-direction: column;
-                    }
                     
                     .retro-title {
                         font-family: 'Press Start 2P', cursive;
@@ -430,7 +413,7 @@ export default function AdamChatbot() {
                         <div className="flex justify-center mb-4">
                             <Lock className="w-16 h-16 text-pink-500 pixel-heart" />
                         </div>
-                        <h1 className="text-xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
+                        <h1 className="text-2xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
                         <p className="retro-text text-gray-600">Passwordnya apa, sayang?</p>
                     </div>
 
@@ -485,28 +468,10 @@ export default function AdamChatbot() {
     }
 
     return (
-        <div className="app-shell flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-white">
+        <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-rose-50 to-white">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-
-                html, body, #root {
-                    height: 100%;
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                }
-                .app-shell {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    /* dvh */
-                    height: 100dvh;
-                    overflow: hidden;
-                    display: flex;
-                    flex-direction: column;
-                }
+                
                 .retro-title {
                     font-family: 'Press Start 2P', cursive;
                     text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
@@ -582,7 +547,7 @@ export default function AdamChatbot() {
                                     <p className="text-xs retro-text opacity-90">~ Still here for you ~</p>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        {/* <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span> */}
+                                        <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
                                         <p className="text-xs retro-text text-green-200">~ 224 ~</p>
                                     </div>
                                 )}
@@ -598,7 +563,7 @@ export default function AdamChatbot() {
             </div>
 
             {/* Messages */}
-            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
                 {messages.map((msg, idx) => (
                     <div
                         key={idx}

@@ -10,7 +10,6 @@ const firebaseConfig = {
     appId: "1:44413551728:web:4ce7110d225dea46a3e0b5"
 };
 
-// Export the config for use in Admin page
 export { firebaseConfig };
 
 export default function AdamChatbot() {
@@ -27,9 +26,17 @@ export default function AdamChatbot() {
     const [botEnabled, setBotEnabled] = useState(true);
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
+    const inputRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const handleInputFocus = () => {
+        setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 400);
     };
 
     useEffect(() => {
@@ -113,7 +120,6 @@ export default function AdamChatbot() {
         }
     };
 
-    // Listen to config changes in realtime (so bot on/off reflects immediately)
     const listenToConfigUpdates = () => {
         const { db, doc, onSnapshot } = dbRef.current;
         onSnapshot(doc(db, 'config', 'chatbot'), (snapshot) => {
@@ -354,11 +360,11 @@ export default function AdamChatbot() {
 
     if (initializing) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+            <div className="app-shell flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100">
                 <div className="text-center">
                     <div className="relative">
                         <Loader2 className="w-16 h-16 animate-spin text-pink-500 mx-auto mb-4" />
-                        <Sparkles className="w-6 h-6 text-purple-400 absolute top-0 right-12 animate-pulse" />
+                        <Sparkles className="w-6 h-6 text-pink-300 absolute top-0 right-12 animate-pulse" />
                     </div>
                     <p className="text-gray-700 font-mono text-lg">Loading...</p>
                 </div>
@@ -368,9 +374,18 @@ export default function AdamChatbot() {
 
     if (!isAuthenticated) {
         return (
-            <div className="flex items-center justify-center h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100">
+            <div className="app-shell flex items-center justify-center bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100 px-2">
                 <style>{`
                     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+                    
+                    .app-shell {
+                        position: fixed;
+                        top: 0; left: 0; right: 0; bottom: 0;
+                        height: 100dvh;
+                        overflow: hidden;
+                        display: flex;
+                        flex-direction: column;
+                    }
                     
                     .retro-title {
                         font-family: 'Press Start 2P', cursive;
@@ -415,7 +430,7 @@ export default function AdamChatbot() {
                         <div className="flex justify-center mb-4">
                             <Lock className="w-16 h-16 text-pink-500 pixel-heart" />
                         </div>
-                        <h1 className="text-2xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
+                        <h1 className="text-xl retro-title text-pink-600 mb-2">Halo Sophia ♥</h1>
                         <p className="retro-text text-gray-600">Passwordnya apa, sayang?</p>
                     </div>
 
@@ -444,7 +459,7 @@ export default function AdamChatbot() {
                         <button
                             onClick={checkPassword}
                             disabled={checkingPassword || !passwordInput.trim()}
-                            className="login-button w-full bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                            className="login-button w-full bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-2xl px-6 py-4 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
                         >
                             {checkingPassword ? (
                                 <div className="flex items-center justify-center gap-2">
@@ -470,10 +485,30 @@ export default function AdamChatbot() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
+        <div className="app-shell flex flex-col bg-gradient-to-br from-pink-50 via-rose-50 to-white">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-                
+
+                html, body, #root {
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden;
+                }
+                .app-shell {
+                    /* position: fixed is the ONLY reliable method in FB WebView */
+                    /* It ignores address bar, nav bar, and keyboard entirely */
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    /* set dvh for modern browsers */
+                    height: 100dvh;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                }
                 .retro-title {
                     font-family: 'Press Start 2P', cursive;
                     text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
@@ -538,34 +573,34 @@ export default function AdamChatbot() {
             `}</style>
 
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-400 via-purple-400 to-pink-500 text-white p-6 shadow-xl border-b-4 border-pink-600">
+            <div className="bg-gradient-to-r from-pink-300 via-pink-400 to-rose-300 text-white p-4 shadow-xl border-b-4 border-pink-300">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Heart className="w-10 h-10 fill-current pixel-heart" />
+                        <div className="flex items-center gap-3">
+                            <Heart className="w-7 h-7 fill-current pixel-heart" />
                             <div>
-                                <h1 className="text-2xl retro-title mb-2">Adam ♥</h1>
+                                <h1 className="text-sm retro-title mb-0.5 flex items-center gap-1">Adam Sayang<img src="/kissingsmiley.png" alt="love" style={{ width: '1.5em', height: '1.5em', display: 'inline-block', verticalAlign: 'middle' }} /></h1>
                                 {botEnabled ? (
-                                    <p className="text-sm retro-text opacity-90">~ Still here for you ~</p>
+                                    <p className="text-xs retro-text opacity-90">~ Still here for you ~</p>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span>
-                                        <p className="text-sm retro-text text-green-200">~ Bukan AI ~</p>
+                                        {/* <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse inline-block"></span> */}
+                                        <p className="text-xs retro-text text-green-200">~ 224 ~</p>
                                     </div>
                                 )}
                             </div>
                         </div>
                         <div className="flex gap-1">
-                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse" />
-                            <Heart className="w-3 h-3 text-pink-400 fill-current animate-pulse delay-75" />
-                            <Heart className="w-4 h-4 text-pink-300 fill-current animate-pulse delay-150" />
+                            <Heart className="w-3 h-3 text-pink-300 fill-current animate-pulse" />
+                            <Heart className="w-2.5 h-2.5 text-pink-400 fill-current animate-pulse delay-75" />
+                            <Heart className="w-3 h-3 text-pink-300 fill-current animate-pulse delay-150" />
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
+            <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 max-w-4xl w-full mx-auto">
                 {messages.map((msg, idx) => (
                     <div
                         key={idx}
@@ -573,16 +608,30 @@ export default function AdamChatbot() {
                     >
                         <div className="flex flex-col max-w-[80%]">
                             {msg.role === 'user' ? (
-                                <div className="bg-gradient-to-br from-purple-400 to-pink-400 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-purple-500">
-                                    <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
-                                </div>
-                            ) : (
-                                <div className="flex items-start gap-3">
-                                    <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
-                                    <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
-                                        <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                <>
+                                    <div className="bg-gradient-to-br from-pink-300 to-rose-300 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-300">
+                                        <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
                                     </div>
-                                </div>
+                                    {msg.timestamp && (
+                                        <p className="text-xs text-gray-400 mt-1 text-right px-2">
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex items-start gap-3">
+                                        <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
+                                        <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
+                                            <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                        </div>
+                                    </div>
+                                    {msg.timestamp && (
+                                        <p className="text-xs text-gray-400 mt-1 text-left px-11">
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -605,30 +654,30 @@ export default function AdamChatbot() {
 
             {/* Input */}
             <div className="border-t-4 border-pink-200 bg-white shadow-2xl">
-                {/* {!botEnabled && (
-                    <div className="max-w-4xl mx-auto px-6 pt-3">
-                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-4 py-2">
-                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
-                            <p className="retro-text text-green-700 text-sm">Slow response 💬</p>
+                {botEnabled && (
+                    <div className="max-w-4xl mx-auto px-4 pt-2">
+                        <div className="flex items-center gap-2 bg-green-50 border-2 border-green-300 rounded-xl px-3 py-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+                            <p className="retro-text text-green-700 text-sm">Bot is activated 💬</p>
                         </div>
                     </div>
-                )} */}
-                <div className="max-w-4xl mx-auto flex gap-3 p-6">
+                )}
+                <div className="max-w-4xl mx-auto flex gap-2 px-4 py-3">
                     <textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyPress={handleKeyPress}
                         placeholder={botEnabled ? "..." : "..."}
-                        className="flex-1 input-box border-pink-300 rounded-2xl px-5 py-4 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
+                        className="flex-1 input-box border-pink-300 rounded-xl px-4 py-2 focus:outline-none focus:border-pink-500 resize-none bg-pink-50"
                         rows="1"
                         disabled={loading}
                     />
                     <button
                         onClick={sendMessage}
                         disabled={loading || !input.trim()}
-                        className="send-button bg-gradient-to-br from-pink-400 to-purple-400 text-white rounded-2xl px-8 py-4 hover:from-pink-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-500"
+                        className="send-button bg-gradient-to-br from-pink-400 to-rose-400 text-white rounded-xl px-5 py-2 hover:from-pink-500 hover:to-rose-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all border-4 border-pink-300"
                     >
-                        <Send className="w-6 h-6" />
+                        <Send className="w-5 h-5" />
                     </button>
                 </div>
             </div>
