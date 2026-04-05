@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Download, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2, Key, Send, Bot, User, ChevronDown, ChevronUp, BarChart2, X, CornerUpLeft } from 'lucide-react';
+import { Eye, Download, Lock, Unlock, Search, MessageCircle, Settings, Save, Edit2, Key, Send, Bot, User, ChevronDown, ChevronUp, BarChart2, X } from 'lucide-react';
 
 const firebaseConfig = {
     apiKey: "AIzaSyBuaKK3NpQ3xhP3PbIYAolzfZf9SXaRikc",
@@ -27,13 +27,9 @@ export default function Admin() {
     const [sendingMessage, setSendingMessage] = useState(false);
     const [statsOpen, setStatsOpen] = useState(false);
     const [configOpen, setConfigOpen] = useState(false);
-
-    const [replyingTo, setReplyingTo] = useState(null); // { id, content, role }
-
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
     const authRef = useRef(null);
-    const textareaRef = useRef(null);
 
     useEffect(() => { initFirebase(); }, []);
     useEffect(() => {
@@ -48,23 +44,13 @@ export default function Admin() {
     const initFirebase = async () => {
         try {
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-            const { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc, connectFirestoreEmulator } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-            const { getAuth, signInWithEmailAndPassword, signOut, connectAuthEmulator } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-
+            const { getFirestore, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
+            const { getAuth, signInWithEmailAndPassword, signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             const auth = getAuth(app);
-
-            // emulator
-            if (window.location.hostname === 'localhost') {
-                connectFirestoreEmulator(db, 'localhost', 8080);
-                connectAuthEmulator(auth, 'http://localhost:9099');
-            }
-
-            // set ref 
             dbRef.current = { db, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc };
             authRef.current = { auth, signInWithEmailAndPassword, signOut };
-
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
@@ -140,21 +126,13 @@ export default function Admin() {
         setSendingMessage(true);
         try {
             const { db, collection, addDoc } = dbRef.current;
-
-            const payload = {
+            await addDoc(collection(db, 'chats'), {
                 role: 'model',
                 content: manualMessage,
                 timestamp: new Date().toISOString(),
-                manual: true,
-            };
-
-            if (replyingTo) {
-                payload.replyTo = replyingTo.id;
-            }
-
-            await addDoc(collection(db, 'chats'), payload);
+                manual: true
+            });
             setManualMessage('');
-            setReplyingTo(null);
         } catch (error) {
             alert('Failed to send message');
         } finally { setSendingMessage(false); }
@@ -173,14 +151,7 @@ export default function Admin() {
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     if (data.role && data.content) {
-                        chatHistory.push({
-                            id: doc.id,
-                            role: data.role,
-                            content: data.content,
-                            timestamp: data.timestamp,
-                            manual: data.manual || false,
-                            replyTo: data.replyTo || null, // ← ambil field replyTo
-                        });
+                        chatHistory.push({ id: doc.id, role: data.role, content: data.content, timestamp: data.timestamp, manual: data.manual || false });
                     }
                 });
                 setMessages(chatHistory);
@@ -222,10 +193,6 @@ export default function Admin() {
     const filteredMessages = messages.filter(m =>
         m.content.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const getReplySource = (replyToId) => {
-        return messages.find(m => m.id === replyToId) || null;
-    };
 
     const stats = {
         totalMessages: messages.length,
@@ -300,14 +267,6 @@ export default function Admin() {
                 .collapse-body.open { max-height: 700px; opacity: 1; }
                 .collapse-body.closed { max-height: 0; opacity: 0; }
 
-                /* Reply hover */
-                .msg-wrapper { position: relative; }
-                .reply-btn {
-                    opacity: 0;
-                    transition: opacity 0.15s ease;
-                }
-                .msg-wrapper:hover .reply-btn { opacity: 1; }
-
                 @font-face {
                     font-family: 'SFPro';
                     src: url('/fonts/sfptb.ttf') format('truetype');
@@ -345,6 +304,8 @@ export default function Admin() {
                         <Eye className="w-3.5 h-3.5 text-zinc-300" />
                     </div>
                     <span className="spfont font-bold text-sm">My Panel</span>
+                    {/* <span className="text-zinc-700 text-sm">·</span>
+                    <span className="text-zinc-500 text-xs">Adam x Sophia</span> */}
                 </div>
                 <div className="flex items-center gap-2">
                     <button
@@ -491,99 +452,38 @@ export default function Admin() {
                             {messages.length === 0 ? 'Belum ada chat history' : 'No messages found'}
                         </div>
                     ) : (
-                        filteredMessages.map((msg, idx) => {
-                            const isUser = msg.role === 'user';
-                            const replySource = msg.replyTo ? getReplySource(msg.replyTo) : null;
-
-                            return (
-                                <div key={msg.id || idx} className={"flex msg-wrapper " + (isUser ? 'justify-start' : 'justify-end')}>
-
-
-                                    {isUser ? (
-                                        <button
-                                            className="reply-btn self-center mr-2 p-1 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
-                                            title="Reply"
-                                            onClick={() => {
-                                                setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                                textareaRef.current?.focus();
-                                            }}
-                                        >
-                                            <CornerUpLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                    ) : null}
-
-
-                                    <div className="max-w-[78%] flex flex-col">
-                                        {/* Label nama + waktu */}
-                                        <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
-                                            <span className="spfont font-bold text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
-                                            {msg.role === 'model' && (
-                                                <span className="spfontr flex items-center gap-0.5 text-zinc-600">
-                                                    {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
-                                                </span>
-                                            )}
-                                            <span className="text-zinc-800">·</span>
-                                            <span className="spfontsb">
-                                                {new Date(msg.timestamp).toLocaleString('id-ID', {
-                                                    day: '2-digit', month: '2-digit', year: '2-digit',
-                                                    hour: '2-digit', minute: '2-digit'
-                                                })}
+                        filteredMessages.map((msg, idx) => (
+                            <div key={msg.id || idx} className={"flex " + (msg.role === 'user' ? 'justify-start' : 'justify-end')}>
+                                <div className="max-w-[78%] flex flex-col">
+                                    <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
+                                        <span className="spfont font-bold text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
+                                        {msg.role === 'model' && (
+                                            <span className="spfontr flex items-center gap-0.5 text-zinc-600">
+                                                {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
                                             </span>
-                                        </div>
-
-                                        <div className={"flex flex-col " + (msg.role === 'model' ? 'items-end' : 'items-start')}>
-
-
-                                            {replySource && (
-                                                <div className={
-                                                    "mb-1 px-3 py-1.5 rounded-xl text-xs max-w-full " +
-                                                    "bg-zinc-900 border-l-2 border-zinc-500 text-zinc-400 " +
-                                                    "truncate cursor-default"
-                                                }
-                                                    style={{ maxWidth: '100%' }}
-                                                    title={replySource.content}
-                                                >
-                                                    <span className="text-zinc-500 font-semibold mr-1">
-                                                        {replySource.role === 'user' ? 'Pia' : 'Adam'}:
-                                                    </span>
-                                                    <span className="truncate">
-                                                        {replySource.content.length > 80
-                                                            ? replySource.content.slice(0, 80) + '…'
-                                                            : replySource.content}
-                                                    </span>
-                                                </div>
-                                            )}
-
-
-
-                                            <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
-                                                isUser
-                                                    ? 'bg-zinc-700 text-zinc-100'
-                                                    : msg.manual
-                                                        ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
-                                                        : 'bg-zinc-800 text-zinc-300'
-                                            )}>
-                                                <p className="spfontr font-normal whitespace-pre-wrap break-words">{msg.content}</p>
-                                            </div>
+                                        )}
+                                        <span className="text-zinc-800">·</span>
+                                        <span className="spfontsb">
+                                            {new Date(msg.timestamp).toLocaleString('id-ID', {
+                                                day: '2-digit', month: '2-digit', year: '2-digit',
+                                                hour: '2-digit', minute: '2-digit'
+                                            })}
+                                        </span>
+                                    </div>
+                                    <div className={"flex " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
+                                        <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
+                                            msg.role === 'user'
+                                                ? 'bg-zinc-700 text-zinc-100'
+                                                : msg.manual
+                                                    ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
+                                                    : 'bg-zinc-800 text-zinc-300'
+                                        )}>
+                                            <p className="spfontr font-normal whitespace-pre-wrap break-words">{msg.content}</p>
                                         </div>
                                     </div>
-
-
-                                    {!isUser ? (
-                                        <button
-                                            className="reply-btn self-center ml-2 p-1 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
-                                            title="Reply"
-                                            onClick={() => {
-                                                setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                                textareaRef.current?.focus();
-                                            }}
-                                        >
-                                            <CornerUpLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                    ) : null}
                                 </div>
-                            );
-                        })
+                            </div>
+                        ))
                     )}
                     <div ref={messagesEndRef} />
                 </div>
@@ -597,32 +497,8 @@ export default function Admin() {
                         <span className="spfontsb text-xs text-zinc-500">Manual mode</span>
                     </div>
                 )}
-
-
-                {replyingTo && (
-                    <div className="flex items-center gap-2 px-4 pt-2 pb-1 border-t border-zinc-800">
-                        <CornerUpLeft className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-                        <div className="flex-1 text-xs text-zinc-400 truncate">
-                            <span className="text-zinc-500 font-semibold mr-1">
-                                {replyingTo.role === 'user' ? 'Pia' : 'Adam'}:
-                            </span>
-                            {replyingTo.content.length > 80
-                                ? replyingTo.content.slice(0, 80) + '…'
-                                : replyingTo.content}
-                        </div>
-                        <button
-                            onClick={() => setReplyingTo(null)}
-                            className="p-0.5 text-zinc-600 hover:text-zinc-300 flex-shrink-0"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                )}
-
-
                 <div className="flex items-end gap-2 px-4 py-3">
                     <textarea
-                        ref={textareaRef}
                         value={manualMessage}
                         onChange={(e) => setManualMessage(e.target.value)}
                         onKeyPress={handleManualMessageKeyPress}

@@ -496,14 +496,12 @@ export default function AdamChatbot() {
                     overflow: hidden;
                 }
                 .app-shell {
-                    /* position: fixed is the ONLY reliable method in FB WebView */
-                    /* It ignores address bar, nav bar, and keyboard entirely */
                     position: fixed;
                     top: 0;
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    /* set dvh for modern browsers */
+                    /* dvh */
                     height: 100dvh;
                     overflow: hidden;
                     display: flex;
