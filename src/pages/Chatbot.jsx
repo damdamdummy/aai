@@ -384,10 +384,14 @@ export default function AdamChatbot() {
                 .send-button { box-shadow: 4px 4px 0px rgba(0,0,0,0.2); transition: all 0.1s; }
                 .send-button:active:not(:disabled) { box-shadow: 2px 2px 0px rgba(0,0,0,0.2); transform: translate(2px, 2px); }
 
-                /* Reply hover */
-                .msg-row { position: relative; }
-                .reply-btn { opacity: 0; transition: opacity 0.15s ease; }
-                .msg-row:hover .reply-btn { opacity: 1; }
+                /* Reply */
+                .reply-btn {
+                    opacity: 0.5;
+                    transition: opacity 0.15s ease;
+                }
+                .reply-btn:hover, .reply-btn:active {
+                    opacity: 1;
+                }
 
                 /* Reply preview */
                 .reply-preview {

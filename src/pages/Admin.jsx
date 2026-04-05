@@ -300,13 +300,14 @@ export default function Admin() {
                 .collapse-body.open { max-height: 700px; opacity: 1; }
                 .collapse-body.closed { max-height: 0; opacity: 0; }
 
-                /* Reply hover */
-                .msg-wrapper { position: relative; }
                 .reply-btn {
-                    opacity: 0;
+                    opacity: 0.35;
                     transition: opacity 0.15s ease;
                 }
-                .msg-wrapper:hover .reply-btn { opacity: 1; }
+
+                .reply-btn:hover, .reply-btn:active {
+                    opacity: 1;
+                }
 
                 @font-face {
                     font-family: 'SFPro';
@@ -523,7 +524,7 @@ export default function Admin() {
                                                 </span>
                                             )}
                                             <span className="text-zinc-800">·</span>
-                                            <span className="spfontsb">
+                                            <span className="spfontr">
                                                 {new Date(msg.timestamp).toLocaleString('id-ID', {
                                                     day: '2-digit', month: '2-digit', year: '2-digit',
                                                     hour: '2-digit', minute: '2-digit'
@@ -543,10 +544,10 @@ export default function Admin() {
                                                     style={{ maxWidth: '100%' }}
                                                     title={replySource.content}
                                                 >
-                                                    <span className="text-zinc-500 font-semibold mr-1">
+                                                    <span className="spfontsb text-zinc-500 font-semibold mr-1">
                                                         {replySource.role === 'user' ? 'Pia' : 'Adam'}:
                                                     </span>
-                                                    <span className="truncate">
+                                                    <span className="spfontr truncate">
                                                         {replySource.content.length > 80
                                                             ? replySource.content.slice(0, 80) + '…'
                                                             : replySource.content}
@@ -563,7 +564,7 @@ export default function Admin() {
                                                         ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
                                                         : 'bg-zinc-800 text-zinc-300'
                                             )}>
-                                                <p className="spfontr font-normal whitespace-pre-wrap break-words">{msg.content}</p>
+                                                <p className="spfontsb font-normal whitespace-pre-wrap break-words">{msg.content}</p>
                                             </div>
                                         </div>
                                     </div>
