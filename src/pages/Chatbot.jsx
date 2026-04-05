@@ -407,6 +407,23 @@ export default function AdamChatbot() {
                     max-width: 100%;
                     cursor: default;
                 }
+
+                .reply-preview {
+                    font-family: 'VT323', monospace;
+                    font-size: 1rem;
+                    border-left: 3px solid;
+                    padding: 4px 8px;
+                    margin-bottom: 6px;
+                    border-radius: 6px;
+                    display: block;
+                    max-width: 100%;
+                    width: 0;        
+                    min-width: 100%;  
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                    cursor: default;
+}
             `}</style>
 
             {/* Header */}
@@ -466,13 +483,13 @@ export default function AdamChatbot() {
 
                                             {replySource && (
                                                 <div
-                                                    className="reply-preview border-white/60 bg-white/20 text-white/80 mb-2"
+                                                    className="reply-preview border-pink-300 bg-pink-50 text-pink-400 mb-2"
                                                     title={replySource.content}
                                                 >
-                                                    <span className="font-bold mr-1">{replySource.role === 'user' ? 'Pia' : 'Adam'}:</span>
-                                                    {replySource.content.length > 60
-                                                        ? replySource.content.slice(0, 60) + '…'
-                                                        : replySource.content}
+                                                    <span className="font-bold mr-1">
+                                                        {replySource.role === 'user' ? 'Pia' : 'Adam'}:
+                                                    </span>
+                                                    {replySource.content}
                                                 </div>
                                             )}
                                             <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
