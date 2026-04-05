@@ -562,8 +562,8 @@ export default function AdamChatbot() {
                             <CornerUpLeft className="w-3.5 h-3.5 text-pink-400 flex-shrink-0" />
                             <p className="retro-text text-pink-500 flex-1 truncate text-sm">
                                 <span className="font-bold mr-1">{replyingTo.role === 'user' ? 'Pia' : 'Adam'}:</span>
-                                {replyingTo.content.length > 70
-                                    ? replyingTo.content.slice(0, 70) + '…'
+                                {replyingTo.content.length > 35
+                                    ? replyingTo.content.slice(0, 35) + '…'
                                     : replyingTo.content}
                             </p>
                             <button
