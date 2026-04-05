@@ -300,14 +300,9 @@ export default function Admin() {
                 .collapse-body.open { max-height: 700px; opacity: 1; }
                 .collapse-body.closed { max-height: 0; opacity: 0; }
 
-                .reply-btn {
-                    opacity: 0.35;
-                    transition: opacity 0.15s ease;
-                }
-
-                .reply-btn:hover, .reply-btn:active {
-                    opacity: 1;
-                }
+                .msg-wrapper { position: relative; }
+                .reply-btn { opacity: 0; transition: opacity 0.15s ease; }
+                .msg-wrapper:hover .reply-btn { opacity: 1; }
 
                 @font-face {
                     font-family: 'SFPro';
@@ -498,24 +493,7 @@ export default function Admin() {
 
                             return (
                                 <div key={msg.id || idx} className={"flex msg-wrapper " + (isUser ? 'justify-start' : 'justify-end')}>
-
-
-                                    {isUser ? (
-                                        <button
-                                            className="reply-btn self-center mr-2 p-1 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
-                                            title="Reply"
-                                            onClick={() => {
-                                                setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                                textareaRef.current?.focus();
-                                            }}
-                                        >
-                                            <CornerUpLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                    ) : null}
-
-
                                     <div className="max-w-[78%] flex flex-col">
-                                        {/* Label nama + waktu */}
                                         <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
                                             <span className="spfont font-bold text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
                                             {msg.role === 'model' && (
@@ -534,20 +512,14 @@ export default function Admin() {
 
                                         <div className={"flex flex-col " + (msg.role === 'model' ? 'items-end' : 'items-start')}>
 
-
                                             {replySource && (
-                                                <div className={
-                                                    "mb-1 px-3 py-1.5 rounded-xl text-xs max-w-full " +
-                                                    "bg-zinc-900 border-l-2 border-zinc-500 text-zinc-400 " +
-                                                    "truncate cursor-default"
-                                                }
-                                                    style={{ maxWidth: '100%' }}
+                                                <div className="mb-1 px-3 py-1.5 rounded-xl text-xs w-full bg-zinc-900 border-l-2 border-zinc-500 text-zinc-400 truncate cursor-default"
                                                     title={replySource.content}
                                                 >
                                                     <span className="spfontsb text-zinc-500 font-semibold mr-1">
                                                         {replySource.role === 'user' ? 'Pia' : 'Adam'}:
                                                     </span>
-                                                    <span className="spfontr truncate">
+                                                    <span className="spfontr">
                                                         {replySource.content.length > 80
                                                             ? replySource.content.slice(0, 80) + '…'
                                                             : replySource.content}
@@ -556,32 +528,33 @@ export default function Admin() {
                                             )}
 
 
+                                            <div className="relative group">
+                                                <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
+                                                    isUser
+                                                        ? 'bg-zinc-700 text-zinc-100'
+                                                        : msg.manual
+                                                            ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
+                                                            : 'bg-zinc-800 text-zinc-300'
+                                                )}>
+                                                    <p className="spfontsb font-normal whitespace-pre-wrap break-words">{msg.content}</p>
+                                                </div>
 
-                                            <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (
-                                                isUser
-                                                    ? 'bg-zinc-700 text-zinc-100'
-                                                    : msg.manual
-                                                        ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
-                                                        : 'bg-zinc-800 text-zinc-300'
-                                            )}>
-                                                <p className="spfontsb font-normal whitespace-pre-wrap break-words">{msg.content}</p>
+
+                                                <button
+                                                    className="reply-btn absolute -bottom-1 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg p-1 transition-all"
+                                                    style={{ [isUser ? 'right' : 'left']: '-1.5rem' }}
+                                                    title="Reply"
+                                                    onClick={() => {
+                                                        setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
+                                                        textareaRef.current?.focus();
+                                                    }}
+                                                >
+                                                    <CornerUpLeft className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
 
-
-                                    {!isUser ? (
-                                        <button
-                                            className="reply-btn self-center ml-2 p-1 rounded-lg text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 transition-all"
-                                            title="Reply"
-                                            onClick={() => {
-                                                setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                                textareaRef.current?.focus();
-                                            }}
-                                        >
-                                            <CornerUpLeft className="w-3.5 h-3.5" />
-                                        </button>
-                                    ) : null}
                                 </div>
                             );
                         })

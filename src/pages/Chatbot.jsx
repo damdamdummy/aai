@@ -92,7 +92,7 @@ export default function AdamChatbot() {
                     listenToChatUpdates();
                     listenToConfigUpdates();
                 } else {
-                    setPasswordError('Salaaaah 💔 Kau Sophia atau bukan? 😠🫵🏻');
+                    setPasswordError('Salah! Kau Sophia atau bukan? 😠🫵🏻');
                 }
             } else {
                 setPasswordError('Configuration not found');
@@ -385,13 +385,9 @@ export default function AdamChatbot() {
                 .send-button:active:not(:disabled) { box-shadow: 2px 2px 0px rgba(0,0,0,0.2); transform: translate(2px, 2px); }
 
                 /* Reply */
-                .reply-btn {
-                    opacity: 0.5;
-                    transition: opacity 0.15s ease;
-                }
-                .reply-btn:hover, .reply-btn:active {
-                    opacity: 1;
-                }
+                .msg-row { position: relative; }
+                .reply-btn { opacity: 0; transition: opacity 0.15s ease; }
+                .msg-row:hover .reply-btn { opacity: 1; }
 
                 /* Reply preview */
                 .reply-preview {
