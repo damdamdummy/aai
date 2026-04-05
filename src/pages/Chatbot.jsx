@@ -479,19 +479,18 @@ export default function AdamChatbot() {
                             <div className="flex flex-col max-w-[80%]">
                                 {isUser ? (
                                     <>
+                                        {replySource && (
+                                            <div
+                                                className="reply-preview border-pink-300 bg-pink-50 text-pink-400 mb-1 w-full"
+                                                title={replySource.content}
+                                            >
+                                                <span className="font-bold mr-1">
+                                                    {replySource.role === 'user' ? 'Pia' : 'Adam'}:
+                                                </span>
+                                                {replySource.content}
+                                            </div>
+                                        )}
                                         <div className="bg-gradient-to-br from-pink-300 to-rose-300 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-300">
-
-                                            {replySource && (
-                                                <div
-                                                    className="reply-preview border-pink-300 bg-pink-50 text-pink-400 mb-2"
-                                                    title={replySource.content}
-                                                >
-                                                    <span className="font-bold mr-1">
-                                                        {replySource.role === 'user' ? 'Pia' : 'Adam'}:
-                                                    </span>
-                                                    {replySource.content}
-                                                </div>
-                                            )}
                                             <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
                                         </div>
                                         {msg.timestamp && (
@@ -502,21 +501,22 @@ export default function AdamChatbot() {
                                     </>
                                 ) : (
                                     <>
+
+                                        {replySource && (
+                                            <div
+                                                className="reply-preview border-pink-300 bg-pink-50 text-pink-400 mb-1 w-full"
+                                                title={replySource.content}
+                                            >
+                                                <span className="font-bold mr-1">
+                                                    {replySource.role === 'user' ? 'Pia' : 'Adam'}:
+                                                </span>
+                                                {replySource.content}
+                                            </div>
+                                        )}
+
                                         <div className="flex items-start gap-3">
                                             <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
                                             <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
-
-                                                {replySource && (
-                                                    <div
-                                                        className="reply-preview border-pink-300 bg-pink-50 text-pink-400 mb-2"
-                                                        title={replySource.content}
-                                                    >
-                                                        <span className="font-bold mr-1">{replySource.role === 'user' ? 'Pia' : 'Adam'}:</span>
-                                                        {replySource.content.length > 35
-                                                            ? replySource.content.slice(0, 35) + '…'
-                                                            : replySource.content}
-                                                    </div>
-                                                )}
                                                 <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
                                             </div>
                                         </div>
