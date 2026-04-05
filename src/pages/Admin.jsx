@@ -223,7 +223,7 @@ export default function Admin() {
                         <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-6 h-6 text-zinc-300" />
                         </div>
-                        <h1 className="interf text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
+                        <h1 className="spfont text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
                     </div>
                     <div className="space-y-3">
                         <input
@@ -231,7 +231,7 @@ export default function Admin() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="interf w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            className="spfontr w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
                             placeholder="Email"
                         />
                         <input
@@ -239,12 +239,12 @@ export default function Admin() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="interf w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
+                            className="spfontr w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm"
                             placeholder="Password"
                         />
                         <button
                             onClick={handleLogin}
-                            className="interf w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all"
+                            className="spfont w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all"
                         >
                             Login
                         </button>
@@ -270,11 +270,31 @@ export default function Admin() {
                 @font-face {
                     font-family: 'SFPro';
                     src: url('/fonts/sfptb.ttf') format('truetype');
+                    font-weight: bold;
+                    font-style: normal;
+                }
+                .spfont {
+                    font-family: 'SFPro', -apple-system, 'SF Pro Text', sans-serif;
+                }
+
+                @font-face {
+                    font-family: 'SFProReg';
+                    src: url('/fonts/sfptr.ttf') format('truetype');
                     font-weight: normal;
                     font-style: normal;
                 }
-                .interf {
-                    font-family: 'SFPro', -apple-system, 'SF Pro Text', sans-serif;
+                .spfontr {
+                    font-family: 'SFProReg', -apple-system, 'SF Pro Text', sans-serif;
+                }
+
+                @font-face {
+                    font-family: 'SFProSB';
+                    src: url('/fonts/sfptb.ttf') format('truetype');
+                    font-weight: bold;
+                    font-style: normal;
+                }
+                .spfontsb {
+                    font-family: 'SFProSB', -apple-system, 'SF Pro Text', sans-serif;
                 }
             `}</style>
 
@@ -283,7 +303,7 @@ export default function Admin() {
                     <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center">
                         <Eye className="w-3.5 h-3.5 text-zinc-300" />
                     </div>
-                    <span className="interf font-bold text-sm">My Panel</span>
+                    <span className="spfont font-bold text-sm">My Panel</span>
                     {/* <span className="text-zinc-700 text-sm">·</span>
                     <span className="text-zinc-500 text-xs">Adam x Sophia</span> */}
                 </div>
@@ -292,7 +312,7 @@ export default function Admin() {
                         onClick={toggleBot}
                         className={"flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all " + (botEnabled ? "bg-zinc-800 border border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-white text-zinc-900 hover:bg-zinc-200")}
                     >
-                        {botEnabled ? <><Bot className="w-3 h-3" />AI On</> : <><User className="w-3 h-3" />Manual</>}
+                        {botEnabled ? <><Bot className="spfont w-3 h-3" />AI On</> : <><User className="spfont w-3 h-3" />Manual</>}
                     </button>
                     <button onClick={handleLogout} className="p-1.5 text-zinc-600 hover:text-zinc-300 transition-colors">
                         <Unlock className="w-4 h-4" />
@@ -310,8 +330,8 @@ export default function Admin() {
                     >
                         <div className="flex items-center gap-2">
                             <BarChart2 className="w-3.5 h-3.5 text-zinc-500" />
-                            <span className="interf text-xs font-medium text-zinc-400 uppercase tracking-widest">Stats</span>
-                            <span className="text-zinc-600 text-xs normal-case tracking-normal font-normal">{stats.totalMessages} pesan</span>
+                            <span className="spfont text-xs font-medium text-zinc-400 uppercase tracking-widest">Stats</span>
+                            <span className="spfontr text-zinc-600 text-xs normal-case tracking-normal font-normal">{stats.totalMessages} pesan</span>
                         </div>
                         {statsOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
                     </button>
@@ -344,7 +364,7 @@ export default function Admin() {
                     >
                         <div className="flex items-center gap-2">
                             <Settings className="w-3.5 h-3.5 text-zinc-500" />
-                            <span className="interf text-xs font-medium text-zinc-400 uppercase tracking-widest">Configuration</span>
+                            <span className="spfont text-xs font-medium text-zinc-400 uppercase tracking-widest">Configuration</span>
                         </div>
                         {configOpen ? <ChevronUp className="w-4 h-4 text-zinc-600" /> : <ChevronDown className="w-4 h-4 text-zinc-600" />}
                     </button>
@@ -414,7 +434,7 @@ export default function Admin() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         placeholder="Search chat..."
-                        className="interf flex-1 bg-transparent text-white placeholder-zinc-600 focus:outline-none text-sm"
+                        className="spfont flex-1 bg-transparent text-white placeholder-zinc-600 focus:outline-none text-sm"
                     />
                     {searchTerm && <span className="text-zinc-500 text-xs">{filteredMessages.length}</span>}
                     <button onClick={downloadChat} disabled={messages.length === 0} className="p-1.5 text-zinc-500 hover:text-zinc-300 disabled:opacity-30 transition-colors" title="Download">
@@ -436,14 +456,14 @@ export default function Admin() {
                             <div key={msg.id || idx} className={"flex " + (msg.role === 'user' ? 'justify-start' : 'justify-end')}>
                                 <div className="max-w-[78%] flex flex-col">
                                     <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
-                                        <span className="font-medium text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
+                                        <span className="spfont font-bold text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
                                         {msg.role === 'model' && (
-                                            <span className="flex items-center gap-0.5 text-zinc-600">
+                                            <span className="spfontr flex items-center gap-0.5 text-zinc-600">
                                                 {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
                                             </span>
                                         )}
                                         <span className="text-zinc-800">·</span>
-                                        <span>
+                                        <span className="spfontsb">
                                             {new Date(msg.timestamp).toLocaleString('id-ID', {
                                                 day: '2-digit', month: '2-digit', year: '2-digit',
                                                 hour: '2-digit', minute: '2-digit'
@@ -458,7 +478,7 @@ export default function Admin() {
                                                     ? 'bg-zinc-800 border border-zinc-600 text-zinc-200'
                                                     : 'bg-zinc-800 text-zinc-300'
                                         )}>
-                                            <p className="interf font-semibold whitespace-pre-wrap break-words">{msg.content}</p>
+                                            <p className="spfontr font-normal whitespace-pre-wrap break-words">{msg.content}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -474,7 +494,7 @@ export default function Admin() {
                 {!botEnabled && (
                     <div className="px-4 pt-2 flex items-center gap-1.5">
                         <User className="w-3 h-3 text-zinc-500" />
-                        <span className="text-xs text-zinc-500">Manual mode</span>
+                        <span className="spfontsb text-xs text-zinc-500">Manual mode</span>
                     </div>
                 )}
                 <div className="flex items-end gap-2 px-4 py-3">
