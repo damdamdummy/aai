@@ -29,6 +29,19 @@ export default function Admin() {
     const [configOpen, setConfigOpen] = useState(false);
 
     const [replyingTo, setReplyingTo] = useState(null); // { id, content, role }
+    const [activeEmojiPicker, setActiveEmojiPicker] = useState(null); // msg.id
+    const [adminReactions, setAdminReactions] = useState({}); // { [msgId]: emoji } — Adam punya
+    const [userReactions, setUserReactions] = useState({});  // { [msgId]: emoji } — Pia punya, readonly
+
+    const EMOJIS = [
+        { emoji: '❤️', label: 'love' },
+        { emoji: '👍', label: 'thumbs up' },
+        { emoji: '👎', label: 'thumbs down' },
+        { emoji: '😢', label: 'sad' },
+        { emoji: '😂', label: 'laugh' },
+        { emoji: '😡', label: 'angry' },
+        { emoji: '😮', label: 'surprise' },
+    ];
 
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
@@ -40,6 +53,17 @@ export default function Admin() {
         if (isAuthenticated) { loadConfig(); listenToChats(); }
     }, [isAuthenticated]);
     useEffect(() => { scrollToBottom(); }, [messages]);
+
+    useEffect(() => {
+        if (!activeEmojiPicker) return;
+        const handler = (e) => {
+            if (!e.target.closest('.emoji-picker') && !e.target.closest('.react-btn')) {
+                setActiveEmojiPicker(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [activeEmojiPicker]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,7 +88,6 @@ export default function Admin() {
             // set ref 
             dbRef.current = { db, collection, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, onSnapshot, addDoc };
             authRef.current = { auth, signInWithEmailAndPassword, signOut };
-
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
@@ -170,6 +193,8 @@ export default function Admin() {
             const q = query(collection(db, 'chats'), orderBy('timestamp', 'asc'));
             onSnapshot(q, (snapshot) => {
                 const chatHistory = [];
+                const adminMap = {};
+                const userMap = {};
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     if (data.role && data.content) {
@@ -179,13 +204,32 @@ export default function Admin() {
                             content: data.content,
                             timestamp: data.timestamp,
                             manual: data.manual || false,
-                            replyTo: data.replyTo || null, // ← ambil field replyTo
+                            replyTo: data.replyTo || null,
                         });
+                        if (data.adminReaction) adminMap[doc.id] = data.adminReaction;
+                        if (data.userReaction) userMap[doc.id] = data.userReaction;
                     }
                 });
                 setMessages(chatHistory);
+                setAdminReactions(adminMap);
+                setUserReactions(userMap);
             });
         } catch (error) { console.error('Failed to listen to chats:', error); }
+    };
+
+    const handleReaction = async (msgId, emoji) => {
+        setActiveEmojiPicker(null);
+        try {
+            const { db, doc, updateDoc } = dbRef.current;
+            const currentReaction = adminReactions[msgId];
+            const newReaction = currentReaction === emoji ? null : emoji;
+            await updateDoc(doc(db, 'chats', msgId), {
+                adminReaction: newReaction || null
+            });
+            setAdminReactions(prev => ({ ...prev, [msgId]: newReaction }));
+        } catch (error) {
+            console.error('Failed to update reaction:', error);
+        }
     };
 
     const downloadChat = () => {
@@ -302,7 +346,63 @@ export default function Admin() {
 
                 .msg-wrapper { position: relative; }
                 .reply-btn { opacity: 0; transition: opacity 0.15s ease; }
+                .react-btn { opacity: 0; transition: opacity 0.15s ease; }
                 .msg-wrapper:hover .reply-btn { opacity: 1; }
+                .msg-wrapper:hover .react-btn { opacity: 1; }
+                .emoji-picker {
+                    display: flex;
+                    gap: 2px;
+                    background: #18181b;
+                    border: 1px solid #3f3f46;
+                    border-radius: 999px;
+                    padding: 4px 6px;
+                    position: absolute;
+                    bottom: 2rem;          
+
+                    max-width: 90vw;
+                    width: max-content;
+                    z-index: 100;
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+                    animation: popIn 0.12s ease;
+                    white-space: nowrap;
+                }
+                @keyframes popIn {
+                    from { opacity: 0; transform: scale(0.85); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .emoji-btn-item {
+                    font-size: 1.1rem;
+                    cursor: pointer;
+                    border-radius: 50%;
+                    width: 28px; height: 28px;
+                    display: flex; align-items: center; justify-content: center;
+                    transition: background 0.1s, transform 0.1s;
+                    border: none; background: transparent;
+                }
+                .emoji-btn-item:hover { background: #3f3f46; transform: scale(1.25); }
+                .reaction-badge {
+                    font-size: 0.8rem;
+                    background: #27272a;
+                    border: 1px solid #3f3f46;
+                    border-radius: 999px;
+                    padding: 1px 6px;
+                    cursor: pointer;
+                    transition: border-color 0.15s;
+                    line-height: 1.4;
+                    user-select: none;
+                }
+                .reaction-badge:hover { border-color: #71717a; }
+                .reaction-badge-readonly {
+                    font-size: 0.8rem;
+                    background: #1c1c1f;
+                    border: 1px dashed #3f3f46;
+                    border-radius: 999px;
+                    padding: 1px 6px;
+                    cursor: default;
+                    line-height: 1.4;
+                    user-select: none;
+                    opacity: 0.65;
+                }
 
                 @font-face {
                     font-family: 'SFPro';
@@ -539,9 +639,44 @@ export default function Admin() {
                                                     <p className="spfontsb font-normal whitespace-pre-wrap break-words">{msg.content}</p>
                                                 </div>
 
+                                                {/* Emoji picker popup */}
+                                                {activeEmojiPicker === msg.id && (
+                                                    <div className="emoji-picker" style={{
+                                                        position: 'absolute',
+                                                        bottom: '2.5rem',
 
+                                                        left: isUser ? '-1rem' : 'auto',
+                                                        right: !isUser ? '-1rem' : 'auto',
+
+                                                        transform: 'none',
+                                                        margin: 0
+                                                    }}>
+                                                        {EMOJIS.map(({ emoji, label }) => (
+                                                            <button
+                                                                key={label}
+                                                                className="emoji-btn-item"
+                                                                title={label}
+                                                                onClick={() => handleReaction(msg.id, emoji)}
+                                                            >
+                                                                {emoji}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Reaction button */}
                                                 <button
-                                                    className="reply-btn absolute -bottom-1 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg p-1 transition-all"
+                                                    className="react-btn absolute -bottom-1 flex items-center justify-center w-8 h-8 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg p-1 transition-all"
+                                                    style={{ [isUser ? 'right' : 'left']: '-2.5rem' }}
+                                                    title="React"
+                                                    onClick={() => setActiveEmojiPicker(activeEmojiPicker === msg.id ? null : msg.id)}
+                                                >
+                                                    <span style={{ fontSize: '0.9rem', lineHeight: 1 }}>☻</span>
+                                                </button>
+
+                                                {/* Reply button */}
+                                                <button
+                                                    className="reply-btn absolute -bottom-1 flex items-center justify-center w-8 h-8 text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800 rounded-lg p-1 transition-all"
                                                     style={{ [isUser ? 'right' : 'left']: '-1.5rem' }}
                                                     title="Reply"
                                                     onClick={() => {
@@ -552,6 +687,29 @@ export default function Admin() {
                                                     <CornerUpLeft className="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
+
+                                            {/* Reaction badges */}
+                                            {(adminReactions[msg.id] || userReactions[msg.id]) && (
+                                                <div className={"flex gap-1 mt-1 " + (isUser ? 'justify-start' : 'justify-end')}>
+                                                    {adminReactions[msg.id] && (
+                                                        <button
+                                                            className="reaction-badge"
+                                                            onClick={() => handleReaction(msg.id, adminReactions[msg.id])}
+                                                            title="Reaction Adam (klik untuk hapus)"
+                                                        >
+                                                            {adminReactions[msg.id]}
+                                                        </button>
+                                                    )}
+                                                    {userReactions[msg.id] && (
+                                                        <span
+                                                            className="reaction-badge-readonly"
+                                                            title="Reaction Pia (readonly)"
+                                                        >
+                                                            {userReactions[msg.id]}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

@@ -26,6 +26,18 @@ export default function AdamChatbot() {
     const [botEnabled, setBotEnabled] = useState(true);
 
     const [replyingTo, setReplyingTo] = useState(null); // { id, content, role }
+    const [activeEmojiPicker, setActiveEmojiPicker] = useState(null); // msg.id
+    const [userReactions, setUserReactions] = useState({});
+    const [adminReactions, setAdminReactions] = useState({});
+    const EMOJIS = [
+        { emoji: '❤️', label: 'love' },
+        { emoji: '👍', label: 'thumbs up' },
+        { emoji: '👎', label: 'thumbs down' },
+        { emoji: '😢', label: 'sad' },
+        { emoji: '😂', label: 'laugh' },
+        { emoji: '😡', label: 'angry' },
+        { emoji: '😮', label: 'surprise' },
+    ];
 
     const messagesEndRef = useRef(null);
     const dbRef = useRef(null);
@@ -44,6 +56,17 @@ export default function AdamChatbot() {
     };
 
     useEffect(() => { scrollToBottom(); }, [messages]);
+
+    useEffect(() => {
+        if (!activeEmojiPicker) return;
+        const handler = (e) => {
+            if (!e.target.closest('.pia-emoji-picker') && !e.target.closest('.pia-react-btn')) {
+                setActiveEmojiPicker(null);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [activeEmojiPicker]);
     useEffect(() => { initFirebase(); }, []);
 
     const initFirebase = async () => {
@@ -51,7 +74,7 @@ export default function AdamChatbot() {
             const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
             const {
                 getFirestore, collection, getDocs, addDoc, query,
-                orderBy, doc, getDoc, onSnapshot,
+                orderBy, doc, getDoc, onSnapshot, updateDoc,
                 connectFirestoreEmulator
             } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
 
@@ -64,7 +87,7 @@ export default function AdamChatbot() {
                 console.log('[DEV] Firestore Emulator connected at localhost:8080');
             }
 
-            dbRef.current = { db, collection, getDocs, addDoc, query, orderBy, doc, getDoc, onSnapshot };
+            dbRef.current = { db, collection, getDocs, addDoc, query, orderBy, doc, getDoc, onSnapshot, updateDoc };
             setInitializing(false);
         } catch (error) {
             console.error('Firebase init error:', error);
@@ -170,6 +193,8 @@ export default function AdamChatbot() {
         const { db, collection, onSnapshot, query } = dbRef.current;
         onSnapshot(query(collection(db, 'chats')), (snapshot) => {
             const chatHistory = [];
+            const userMap = {};
+            const adminMap = {};
             snapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 if (data.role && data.content) {
@@ -180,10 +205,14 @@ export default function AdamChatbot() {
                         timestamp: data.timestamp,
                         replyTo: data.replyTo || null,
                     });
+                    if (data.userReaction) userMap[docSnap.id] = data.userReaction;
+                    if (data.adminReaction) adminMap[docSnap.id] = data.adminReaction;
                 }
             });
             chatHistory.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
             setMessages(chatHistory);
+            setUserReactions(userMap);
+            setAdminReactions(adminMap);
         });
     };
 
@@ -289,6 +318,21 @@ export default function AdamChatbot() {
         if (e.key === 'Enter') { e.preventDefault(); checkPassword(); }
     };
 
+    const handleReaction = async (msgId, emoji) => {
+        setActiveEmojiPicker(null);
+        try {
+            const { db, doc, updateDoc } = dbRef.current;
+            const currentReaction = userReactions[msgId];
+            const newReaction = currentReaction === emoji ? null : emoji;
+            await updateDoc(doc(db, 'chats', msgId), {
+                userReaction: newReaction || null
+            });
+            setUserReactions(prev => ({ ...prev, [msgId]: newReaction }));
+        } catch (error) {
+            console.error('Failed to update reaction:', error);
+        }
+    };
+
     const getReplySource = (replyToId) => messages.find(m => m.id === replyToId) || null;
 
     if (initializing) {
@@ -384,24 +428,76 @@ export default function AdamChatbot() {
                 .send-button { box-shadow: 4px 4px 0px rgba(0,0,0,0.2); transition: all 0.1s; }
                 .send-button:active:not(:disabled) { box-shadow: 2px 2px 0px rgba(0,0,0,0.2); transform: translate(2px, 2px); }
 
-                /* Reply */
+  
                 .msg-row { position: relative; }
                 .reply-btn { opacity: 0; transition: opacity 0.15s ease; }
+                .pia-react-btn { opacity: 0; transition: opacity 0.15s ease; }
                 .msg-row:hover .reply-btn { opacity: 1; }
+                .msg-row:hover .pia-react-btn { opacity: 1; }
+                .pia-emoji-picker {
+                    display: flex;
+                    gap: 2px;
+                    background: #fff0f5;
+                    border: 3px solid #f9a8d4;
+                    border-radius: 999px;
+                    padding: 4px 7px;
+                    position: absolute;
+                    bottom: 2rem;
+                    right: 0;             /* Kita patok dari kanan */
+                    left: auto;           /* Matikan left */
+                    transform: none;
 
-                /* Reply preview */
-                .reply-preview {
+                    max-width: 90vw; 
+                    width: max-content;
+                    z-index: 50;
+                    box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+                    animation: piaPop 0.12s ease;
+                    white-space: nowrap;
+                }
+                @keyframes piaPop {
+                    from { opacity: 0; transform: scale(0.8); }
+                    to { opacity: 1; transform: scale(1); }
+                }
+                .pia-emoji-item {
+                    font-size: 1.15rem;
+                    cursor: pointer;
+                    border-radius: 50%;
+                    width: 30px; height: 30px;
+                    display: flex; align-items: center; justify-content: center;
+                    transition: background 0.1s, transform 0.1s;
+                    border: none; background: transparent;
+                }
+                .pia-emoji-item:hover { background: #fce7f3; transform: scale(1.25); }
+
+                .pia-reaction-badge {
                     font-family: 'VT323', monospace;
                     font-size: 1rem;
-                    border-left: 3px solid;
-                    padding: 4px 8px;
-                    margin-bottom: 6px;
-                    border-radius: 6px;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    max-width: 100%;
+                    background: #fff0f5;
+                    border: 2px solid #f9a8d4;
+                    border-radius: 999px;
+                    padding: 1px 8px;
+                    cursor: pointer;
+                    transition: border-color 0.15s, transform 0.1s;
+                    line-height: 1.4;
+                    user-select: none;
+                    display: inline-block;
+                    margin-top: 4px;
+                    box-shadow: 2px 2px 0px rgba(0,0,0,0.08);
+                }
+                .pia-reaction-badge:hover { border-color: #ec4899; transform: scale(1.08); }
+                .admin-reaction-badge {
+                    font-family: 'VT323', monospace;
+                    font-size: 1rem;
+                    background: #fdf2f8;
+                    border: 2px dashed #f9a8d4;
+                    border-radius: 999px;
+                    padding: 1px 8px;
                     cursor: default;
+                    line-height: 1.4;
+                    user-select: none;
+                    display: inline-block;
+                    margin-top: 4px;
+                    opacity: 0.6;
                 }
 
                 .reply-preview {
@@ -460,16 +556,25 @@ export default function AdamChatbot() {
                         >
 
                             {isUser && (
-                                <button
-                                    className="reply-btn mb-6 p-1.5 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all flex-shrink-0"
-                                    title="Reply"
-                                    onClick={() => {
-                                        setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                        textareaRef.current?.focus();
-                                    }}
-                                >
-                                    <CornerUpLeft className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-1 mb-6 flex-shrink-0">
+                                    <button
+                                        className="pia-react-btn p-1.2 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all"
+                                        title="React"
+                                        onClick={() => setActiveEmojiPicker(activeEmojiPicker === msg.id ? null : msg.id)}
+                                    >
+                                        <span style={{ fontSize: '1rem', lineHeight: 0 }}>☻</span>
+                                    </button>
+                                    <button
+                                        className="reply-btn p-1.2 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all"
+                                        title="Reply"
+                                        onClick={() => {
+                                            setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
+                                            textareaRef.current?.focus();
+                                        }}
+                                    >
+                                        <CornerUpLeft className="w-4 h-4" />
+                                    </button>
+                                </div>
                             )}
 
                             <div className="flex flex-col max-w-[80%]">
@@ -486,9 +591,35 @@ export default function AdamChatbot() {
                                                 {replySource.content}
                                             </div>
                                         )}
-                                        <div className="bg-gradient-to-br from-pink-300 to-rose-300 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-300">
-                                            <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
+                                        <div className="relative">
+                                            {activeEmojiPicker === msg.id && (
+                                                <div className="pia-emoji-picker">
+                                                    {EMOJIS.map(({ emoji, label }) => (
+                                                        <button key={label} className="pia-emoji-item" title={label}
+                                                            onClick={() => handleReaction(msg.id, emoji)}>
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <div className="bg-gradient-to-br from-pink-300 to-rose-300 text-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-300">
+                                                <p className="retro-text whitespace-pre-wrap break-words">{msg.content}</p>
+                                            </div>
                                         </div>
+                                        {(userReactions[msg.id] || adminReactions[msg.id]) && (
+                                            <div className="flex justify-end gap-1">
+                                                {adminReactions[msg.id] && (
+                                                    <span className="admin-reaction-badge" title="Reaction Adam (readonly)">
+                                                        {adminReactions[msg.id]}
+                                                    </span>
+                                                )}
+                                                {userReactions[msg.id] && (
+                                                    <button className="pia-reaction-badge" onClick={() => handleReaction(msg.id, userReactions[msg.id])} title="Klik untuk hapus">
+                                                        {userReactions[msg.id]}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                         {msg.timestamp && (
                                             <p className="text-xs text-gray-400 mt-1 text-right px-2">
                                                 {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -512,10 +643,36 @@ export default function AdamChatbot() {
 
                                         <div className="flex items-start gap-3">
                                             <Heart className="w-6 h-6 text-pink-400 fill-current mt-2 flex-shrink-0" />
-                                            <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
-                                                <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                            <div className="relative">
+                                                {activeEmojiPicker === msg.id && (
+                                                    <div className="pia-emoji-picker">
+                                                        {EMOJIS.map(({ emoji, label }) => (
+                                                            <button key={label} className="pia-emoji-item" title={label}
+                                                                onClick={() => handleReaction(msg.id, emoji)}>
+                                                                {emoji}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <div className="bg-white rounded-3xl px-6 py-4 shadow-lg border-4 border-pink-200">
+                                                    <p className="retro-text text-gray-800 whitespace-pre-wrap break-words">{msg.content}</p>
+                                                </div>
                                             </div>
                                         </div>
+                                        {(userReactions[msg.id] || adminReactions[msg.id]) && (
+                                            <div className="flex justify-start pl-9 gap-1">
+                                                {adminReactions[msg.id] && (
+                                                    <span className="admin-reaction-badge" title="Reaction Adam (readonly)">
+                                                        {adminReactions[msg.id]}
+                                                    </span>
+                                                )}
+                                                {userReactions[msg.id] && (
+                                                    <button className="pia-reaction-badge" onClick={() => handleReaction(msg.id, userReactions[msg.id])} title="Klik untuk hapus">
+                                                        {userReactions[msg.id]}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                         {msg.timestamp && (
                                             <p className="text-xs text-gray-400 mt-1 text-left px-11">
                                                 {new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -527,16 +684,25 @@ export default function AdamChatbot() {
 
 
                             {!isUser && (
-                                <button
-                                    className="reply-btn mb-6 p-1.5 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all flex-shrink-0"
-                                    title="Reply"
-                                    onClick={() => {
-                                        setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
-                                        textareaRef.current?.focus();
-                                    }}
-                                >
-                                    <CornerUpLeft className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center gap-1 mb-6 flex-shrink-0">
+                                    <button
+                                        className="reply-btn p-1.2 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all"
+                                        title="Reply"
+                                        onClick={() => {
+                                            setReplyingTo({ id: msg.id, content: msg.content, role: msg.role });
+                                            textareaRef.current?.focus();
+                                        }}
+                                    >
+                                        <CornerUpLeft className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        className="pia-react-btn p-1.2 rounded-full text-pink-300 hover:text-pink-500 hover:bg-pink-100 transition-all"
+                                        title="React"
+                                        onClick={() => setActiveEmojiPicker(activeEmojiPicker === msg.id ? null : msg.id)}
+                                    >
+                                        <span style={{ fontSize: '1rem', lineHeight: 1 }}>☻</span>
+                                    </button>
+                                </div>
                             )}
                         </div>
                     );
