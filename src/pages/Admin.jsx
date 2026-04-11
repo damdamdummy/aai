@@ -441,7 +441,7 @@ export default function Admin() {
                         <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-6 h-6 text-zinc-300" />
                         </div>
-                        <h1 className="spfont text-xl font-semibold text-white tracking-tight">Welcome, Adam.</h1>
+                        <h1 className="spfont text-xl text-white tracking-tight">Welcome, Adam.</h1>
                     </div>
                     <div className="space-y-3">
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyPress={handleLoginKeyPress}
