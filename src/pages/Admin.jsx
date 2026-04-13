@@ -441,14 +441,14 @@ export default function Admin() {
                         <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-4">
                             <Lock className="w-6 h-6 text-zinc-300" />
                         </div>
-                        <h1 className="spfont text-xl text-white tracking-tight">Welcome, Adam.</h1>
+                        <h1 className="font-bold text-xl text-white tracking-tight">Welcome, Adam.</h1>
                     </div>
                     <div className="space-y-3">
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyPress={handleLoginKeyPress}
-                            className="spfontr w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm" placeholder="Email" />
+                            className="font-normal w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm" placeholder="Email" />
                         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyPress={handleLoginKeyPress}
-                            className="spfontr w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm" placeholder="Password" />
-                        <button onClick={handleLogin} className="spfont w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all">Login</button>
+                            className="font-normal w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 text-sm" placeholder="Password" />
+                        <button onClick={handleLogin} className="font-bold w-full py-3 bg-white text-zinc-900 rounded-xl font-semibold text-sm hover:bg-zinc-200 transition-all">Login</button>
                     </div>
                 </div>
             </div>
@@ -508,7 +508,7 @@ export default function Admin() {
                 @font-face { font-family: 'SFProSB'; src: url('/fonts/sfptsb.ttf') format('truetype'); font-weight: normal; }
                 .spfontsb { font-family: 'SFProSB', -apple-system, 'SF Pro Text', sans-serif; }
                 @font-face { font-family: 'SFProM'; src: url('/fonts/sfptm.ttf') format('truetype'); font-weight: normal; }
-                .spfontsb { font-family: 'SFProM', -apple-system, 'SF Pro Text', sans-serif; }
+                .spfontm { font-family: 'SFProM', -apple-system, 'SF Pro Text', sans-serif; }
             `}</style>
 
             {/* Header */}
@@ -654,14 +654,14 @@ export default function Admin() {
                                 >
                                     <div className="max-w-[78%] flex flex-col">
                                         <div className={"w-full text-xs text-zinc-600 mb-1 flex items-center gap-1.5 px-1 " + (msg.role === 'model' ? 'justify-end' : 'justify-start')}>
-                                            <span className="spfont font-bold text-zinc-400">{msg.role === 'user' ? 'Pia 😙🤍' : 'Adam'}</span>
+                                            <span className="spfont font-bold text-zinc-100 tracking-wide">{msg.role === 'user' ? 'Pipipiw 😙🤍' : 'Adam'}</span>
                                             {msg.role === 'model' && (
                                                 <span className="spfontr flex items-center gap-0.5 text-zinc-600">
                                                     {msg.manual ? <><User className="w-2.5 h-2.5" />manual</> : <><Bot className="w-2.5 h-2.5" />AI</>}
                                                 </span>
                                             )}
-                                            <span className="text-zinc-800">·</span>
-                                            <span className="spfontr">{new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                                            <span className="spfont text-zinc-300">·</span>
+                                            <span className="spfontm">{new Date(msg.timestamp).toLocaleString('id-ID', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                                         </div>
 
                                         <div className={"flex flex-col " + (msg.role === 'model' ? 'items-end' : 'items-start')}>
@@ -674,7 +674,7 @@ export default function Admin() {
                                             )}
                                             <div className="relative group">
                                                 <div className={"inline-block rounded-2xl px-4 py-3 text-sm leading-relaxed " + (isUser ? 'bg-zinc-700 text-zinc-100' : msg.manual ? 'bg-zinc-800 border border-zinc-600 text-zinc-200' : 'bg-zinc-800 text-zinc-300')}>
-                                                    <p className="spfontsb font-normal whitespace-pre-wrap break-words">{msg.content}</p>
+                                                    <p className="spfontr tracking-wide whitespace-pre-wrap break-words">{msg.content}</p>
                                                 </div>
 
                                                 {activeEmojiPicker === msg.id && (
