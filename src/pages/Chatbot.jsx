@@ -622,7 +622,7 @@ export default function AdamChatbot() {
                             </h1>
                             {botEnabled
                                 ? <p className="text-xs retro-text opacity-90">~ Bot is activated ~</p>
-                                : <p className="text-xs retro-text text-green-200">~ Unavailable ~</p>}
+                                : <p className="text-xs retro-text text-green-200">~ Still here, still yours ~</p>}
                         </div>
                     </div>
                     <div className="flex gap-1">
